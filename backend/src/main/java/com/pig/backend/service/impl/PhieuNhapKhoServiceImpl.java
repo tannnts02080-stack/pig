@@ -1,0 +1,490 @@
+package com.pig.backend.service.impl;
+
+import com.pig.backend.domain.*;
+import com.pig.backend.dto.TaoPhieuNhapRequest;
+import com.pig.backend.repository.*;
+import com.pig.backend.service.PhieuNhapKhoService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
+
+    private final PhieuNhapKhoRepository phieuNhapKhoRepository;
+    private final NhaCungCapRepository nhaCungCapRepository;
+    private final SanPhamHeoRepository sanPhamHeoRepository;
+    private final TaiKhoanNganHangRepository taiKhoanNganHangRepository;
+    private final DongTienNganHangRepository dongTienNganHangRepository;
+
+    public PhieuNhapKhoServiceImpl(
+            PhieuNhapKhoRepository phieuNhapKhoRepository,
+            NhaCungCapRepository nhaCungCapRepository,
+            SanPhamHeoRepository sanPhamHeoRepository,
+            TaiKhoanNganHangRepository taiKhoanNganHangRepository,
+            DongTienNganHangRepository dongTienNganHangRepository
+    ) {
+        this.phieuNhapKhoRepository = phieuNhapKhoRepository;
+        this.nhaCungCapRepository = nhaCungCapRepository;
+        this.sanPhamHeoRepository = sanPhamHeoRepository;
+        this.taiKhoanNganHangRepository = taiKhoanNganHangRepository;
+        this.dongTienNganHangRepository = dongTienNganHangRepository;
+    }
+
+    @Override
+    @Transactional
+    public List<PhieuNhapKho> layTatCaPhieuNhap() {
+        try {
+            LocalDate twoYearsAgo = LocalDate.now().minusYears(2);
+            phieuNhapKhoRepository.deleteByNgayNhapKhoBefore(twoYearsAgo);
+        } catch (Exception ignored) {}
+        return phieuNhapKhoRepository.findAllByOrderByNgayNhapKhoDesc();
+    }
+
+    @Override
+    @Transactional
+    public void xoaPhieuNhap(Long id) {
+        phieuNhapKhoRepository.findById(id).ifPresent(pn -> {
+            // Hoàn lại số dư tài khoản ngân hàng & công nợ NCC nếu đã trừ
+            String maPhieu = pn.getMaPhieuNhap();
+            if (maPhieu != null) {
+                try {
+                    dongTienNganHangRepository.findAllByOrderByNgayGiaoDichDesc().stream()
+                            .filter(dt -> maPhieu.equals(dt.getMaThamChieu()))
+                            .findFirst()
+                            .ifPresent(dt -> {
+                                TaiKhoanNganHang tk = dt.getTaiKhoanNganHang();
+                                if (tk != null && dt.getSoTien() != null) {
+                                    tk.setSoDuHienTai(tk.getSoDuHienTai().add(dt.getSoTien()));
+                                    taiKhoanNganHangRepository.save(tk);
+                                }
+                                Long nccId = dt.getNhaCungCapId();
+                                if (nccId != null && dt.getSoTien() != null) {
+                                    nhaCungCapRepository.findById(nccId).ifPresent(ncc -> {
+                                        BigDecimal cur = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
+                                        ncc.setCongNoPhaiTra(cur.add(dt.getSoTien()));
+                                        nhaCungCapRepository.save(ncc);
+                                    });
+                                }
+                                dongTienNganHangRepository.delete(dt);
+                            });
+                } catch (Exception ignored) {}
+            }
+            phieuNhapKhoRepository.delete(pn);
+        });
+    }
+
+    private String formatVND(BigDecimal val) {
+        if (val == null) return "0 đ";
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+        java.text.DecimalFormatSymbols sym = new java.text.DecimalFormatSymbols();
+        sym.setGroupingSeparator('.');
+        df.setDecimalFormatSymbols(sym);
+        return df.format(val.setScale(0, java.math.RoundingMode.HALF_UP)) + " đ";
+    }
+
+    private SanPhamHeo timHoacTaoSanPham(String targetSize, String loaiHeo, String dacDiemHeo, NhaCungCap ncc, TaiKhoanNganHang tkNganHang, String donViTinh) {
+        String finalLoaiHeo = loaiHeo != null ? loaiHeo : "hot";
+        String finalDacDiem = dacDiemHeo != null ? dacDiemHeo : "duoi_cut";
+        Long nccId = ncc != null ? ncc.getId() : null;
+
+        SanPhamHeo sp = sanPhamHeoRepository.findAll().stream()
+            .filter(p -> {
+                boolean sizeMatch = targetSize != null && (targetSize.equalsIgnoreCase(p.getLoaiSize()) || targetSize.equalsIgnoreCase(p.getTenSanPham()));
+                boolean loaiMatch = finalLoaiHeo.equalsIgnoreCase(p.getLoaiHeo() != null ? p.getLoaiHeo() : "hot");
+                boolean dacDiemMatch = finalDacDiem.equalsIgnoreCase(p.getDacDiemHeo() != null ? p.getDacDiemHeo() : "duoi_cut");
+                boolean nccMatch = (nccId == null && p.getNhaCungCap() == null) || (nccId != null && p.getNhaCungCap() != null && nccId.equals(p.getNhaCungCap().getId()));
+                return sizeMatch && loaiMatch && dacDiemMatch && nccMatch;
+            })
+            .findFirst()
+            .orElse(null);
+
+        if (sp == null) {
+            sp = new SanPhamHeo();
+            sp.setMaSanPham("SP-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000));
+            sp.setTenSanPham(targetSize != null ? targetSize : "Sản phẩm mới");
+            sp.setLoaiSize(targetSize != null ? targetSize : "Khác");
+            sp.setLoaiHeo(finalLoaiHeo);
+            sp.setDacDiemHeo(finalDacDiem);
+            sp.setDonViTinh(donViTinh != null ? donViTinh : "Con");
+            sp.setNhaCungCap(ncc);
+            sp.setTaiKhoanNganHang(tkNganHang);
+            sp.setSoLuongCon(0);
+            sp.setSoKgTonKho(BigDecimal.ZERO);
+            sp.setGiaNhapVon(BigDecimal.ZERO);
+            sp.setGiaBanRa(BigDecimal.ZERO);
+            sp = sanPhamHeoRepository.save(sp);
+        }
+        return sp;
+    }
+
+    @Override
+    @Transactional
+    public PhieuNhapKho taoPhieuNhap(TaoPhieuNhapRequest request) {
+        List<TaoPhieuNhapRequest.ChiTietMonNhapRequest> danhSachMon = request.getDanhSachChiTiet() != null ? request.getDanhSachChiTiet() : request.getItems();
+        if (danhSachMon == null || danhSachMon.isEmpty()) {
+            throw new RuntimeException("Phiếu nhập phải có chi tiết heo!");
+        }
+
+        Long nccId = request.getNhaCungCapId() != null ? request.getNhaCungCapId() : request.getSupplierId();
+        NhaCungCap ncc = nhaCungCapRepository.findById(nccId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhà cung cấp ID: " + nccId));
+
+        String maPhieu = "PUR-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + (System.currentTimeMillis() % 1000);
+        BigDecimal tienHangHeo = BigDecimal.ZERO;
+        BigDecimal chiPhiTienXe = request.getChiPhiTienXe() != null ? request.getChiPhiTienXe() : (request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
+        BigDecimal chiPhiTienBai = request.getChiPhiTienBai() != null ? request.getChiPhiTienBai() : (request.getParkingFee() != null ? request.getParkingFee() : BigDecimal.ZERO);
+
+        String loaiHeo = request.getLoaiHeo() != null ? request.getLoaiHeo() : (request.getPorkType() != null ? request.getPorkType() : "hot");
+        String dacDiemHeo = request.getDacDiemHeo() != null ? request.getDacDiemHeo() : (request.getPigFeature() != null ? request.getPigFeature() : "duoi_cut");
+        String nguoiChiu = request.getNguoiChiuTienXe() != null ? request.getNguoiChiuTienXe() : (request.getShippingPayer() != null ? request.getShippingPayer() : "buyer");
+        boolean nccChiu = "supplier".equalsIgnoreCase(nguoiChiu);
+
+        int tongSoConChuyenXe = 0;
+        for (TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq : danhSachMon) {
+            int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
+            tongSoConChuyenXe += soCon;
+        }
+
+        BigDecimal chiPhiPhuMoiCon = BigDecimal.ZERO;
+        if (!nccChiu && tongSoConChuyenXe > 0) {
+            BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
+            chiPhiPhuMoiCon = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        Long bankId = request.getTaiKhoanNganHangId() != null ? request.getTaiKhoanNganHangId() : request.getBankAccountId();
+        TaiKhoanNganHang tkNganHang = null;
+        if (bankId != null) {
+            tkNganHang = taiKhoanNganHangRepository.findById(bankId).orElse(null);
+        }
+
+        List<ChiTietPhieuNhap> danhSachChiTiet = new ArrayList<>();
+
+        for (TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq : danhSachMon) {
+            String targetSize = itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType();
+            String donVi = itReq.getDonViTinh() != null ? itReq.getDonViTinh() : (itReq.getUnit() != null ? itReq.getUnit() : "Con");
+            
+            SanPhamHeo sp = timHoacTaoSanPham(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi);
+
+            int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
+            BigDecimal soKg = itReq.getSoKg() != null ? itReq.getSoKg() : (itReq.getWeightKg() != null ? itReq.getWeightKg() : BigDecimal.ZERO);
+            BigDecimal giaVonGoc = itReq.getGiaNhapVon() != null ? itReq.getGiaNhapVon() : (itReq.getCostPrice() != null ? itReq.getCostPrice() : BigDecimal.ZERO);
+            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon);
+
+            boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
+            BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
+            tienHangHeo = tienHangHeo.add(thanhTien);
+
+            if (sp != null) {
+                sp.setSoLuongCon(sp.getSoLuongCon() + (soCon > 0 ? soCon : 1));
+                BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
+                BigDecimal addKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
+                sp.setSoKgTonKho(sp.getSoKgTonKho().add(addKg));
+                sp.setGiaNhapVon(giaVonThucTe);
+                sp.setLoaiHeo(loaiHeo);
+                sp.setDacDiemHeo(dacDiemHeo);
+                sp.setNhaCungCap(ncc);
+                if (tkNganHang != null) {
+                    sp.setTaiKhoanNganHang(tkNganHang);
+                }
+                LocalDate ngay = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
+                sp.setNgayNhap(ngay);
+                sanPhamHeoRepository.save(sp);
+            }
+
+            ChiTietPhieuNhap ctpn = new ChiTietPhieuNhap();
+            ctpn.setSanPhamHeo(sp);
+            ctpn.setLoaiSize(itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType());
+            ctpn.setDonViTinh(donVi);
+            ctpn.setSoLuongCon(soCon > 0 ? soCon : 1);
+            ctpn.setSoKg(soKg);
+            ctpn.setGiaNhapVon(giaVonThucTe);
+            ctpn.setThanhTienHang(thanhTien);
+
+            danhSachChiTiet.add(ctpn);
+        }
+
+        BigDecimal tongTienNhap = tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
+        if (nccChiu) {
+            soTienDaTra = tongTienNhap; // Nếu NCC chịu tiền xe, tài khoản NCC bị trừ cả tiền hàng + tiền xe + tiền bãi
+        }
+        BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
+        LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
+
+        if (tkNganHang == null && ncc != null) {
+            tkNganHang = taiKhoanNganHangRepository.findAll().stream()
+                    .filter(tk -> "NCC".equalsIgnoreCase(tk.getLoaiTaiKhoan()) && (tk.getNhaCungCapId() != null && tk.getNhaCungCapId().equals(ncc.getId())))
+                    .findFirst()
+                    .orElse(null);
+            if (tkNganHang == null) {
+                tkNganHang = taiKhoanNganHangRepository.findAll().stream()
+                        .filter(tk -> "NCC".equalsIgnoreCase(tk.getLoaiTaiKhoan()))
+                        .findFirst()
+                        .orElse(null);
+            }
+        }
+
+        PhieuNhapKho pn = new PhieuNhapKho();
+        pn.setMaPhieuNhap(maPhieu);
+        pn.setNhaCungCap(ncc);
+        pn.setTaiKhoanNganHang(tkNganHang);
+        pn.setNgayNhapKho(ngayNhap);
+        pn.setLoaiHeo(loaiHeo);
+        pn.setDacDiemHeo(dacDiemHeo);
+        pn.setChiPhiTienXe(chiPhiTienXe);
+        pn.setChiPhiTienBai(chiPhiTienBai);
+        pn.setNguoiChiuTienXe(nguoiChiu);
+        pn.setTienHangHeo(tienHangHeo);
+        pn.setTongTienNhap(tongTienNhap);
+        pn.setSoTienDaTra(soTienDaTra);
+        pn.setCongNoConThieu(congNoConThieu);
+        pn.setGhiChu(request.getGhiChu() != null ? request.getGhiChu() : request.getNotes());
+
+        for (ChiTietPhieuNhap ct : danhSachChiTiet) {
+            ct.setPhieuNhapKho(pn);
+        }
+        pn.setDanhSachChiTiet(danhSachChiTiet);
+
+        PhieuNhapKho saved = phieuNhapKhoRepository.save(pn);
+
+        if (ncc != null) {
+            BigDecimal curBal = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
+            if (soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
+                ncc.setCongNoPhaiTra(curBal.subtract(soTienDaTra));
+                nhaCungCapRepository.save(ncc);
+            }
+        }
+
+        if (tkNganHang != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
+            tkNganHang.setSoDuHienTai(tkNganHang.getSoDuHienTai().subtract(soTienDaTra));
+            taiKhoanNganHangRepository.save(tkNganHang);
+
+            DongTienNganHang dt = new DongTienNganHang();
+            dt.setTaiKhoanNganHang(tkNganHang);
+            dt.setLoaiDongTien("OUT");
+            dt.setSoTien(soTienDaTra.abs());
+            dt.setLoaiDoiTuong("NCC");
+            dt.setNhaCungCapId(ncc != null ? ncc.getId() : null);
+            dt.setLoaiNghiepVu("NHAP_CHUYEN_XE_HEO");
+            dt.setLoaiGiaoDich("TRU_TIEN_HANG_NCC");
+            dt.setMaThamChieu(saved.getMaPhieuNhap());
+            String desc = "Nhập hàng từ NCC: " + ncc.getTenNhaCungCap() + " (Mã: " + saved.getMaPhieuNhap();
+            if (nccChiu && chiPhiTienXe.compareTo(BigDecimal.ZERO) > 0) {
+                desc += " – NCC chịu tiền xe " + formatVND(chiPhiTienXe);
+            }
+            desc += ")";
+            dt.setMoTa(desc);
+            dt.setNgayGiaoDich(LocalDateTime.now());
+            dongTienNganHangRepository.save(dt);
+        }
+
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PhieuNhapKho capNhatPhieuNhap(Long id, TaoPhieuNhapRequest request) {
+        PhieuNhapKho pn = phieuNhapKhoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập ID: " + id));
+
+        if (pn.getDanhSachChiTiet() != null) {
+            for (ChiTietPhieuNhap oldCt : pn.getDanhSachChiTiet()) {
+                SanPhamHeo sp = oldCt.getSanPhamHeo();
+                if (sp != null) {
+                    int oldCon = oldCt.getSoLuongCon() != null ? oldCt.getSoLuongCon() : 0;
+                    sp.setSoLuongCon(Math.max(0, sp.getSoLuongCon() - oldCon));
+                    BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
+                    BigDecimal oldKg = oldCt.getSoKg() != null ? oldCt.getSoKg() : BigDecimal.valueOf(oldCon).multiply(w);
+                    sp.setSoKgTonKho(sp.getSoKgTonKho().subtract(oldKg).max(BigDecimal.ZERO));
+                    sanPhamHeoRepository.save(sp);
+                }
+            }
+        }
+
+        BigDecimal oldPaid = pn.getSoTienDaTra() != null ? pn.getSoTienDaTra() : BigDecimal.ZERO;
+        if (oldPaid.compareTo(BigDecimal.ZERO) > 0) {
+            if (pn.getNhaCungCap() != null) {
+                NhaCungCap oldNcc = pn.getNhaCungCap();
+                BigDecimal cur = oldNcc.getCongNoPhaiTra() != null ? oldNcc.getCongNoPhaiTra() : BigDecimal.ZERO;
+                oldNcc.setCongNoPhaiTra(cur.add(oldPaid));
+                nhaCungCapRepository.save(oldNcc);
+            }
+            if (pn.getTaiKhoanNganHang() != null) {
+                TaiKhoanNganHang oldTk = pn.getTaiKhoanNganHang();
+                oldTk.setSoDuHienTai(oldTk.getSoDuHienTai().add(oldPaid));
+                taiKhoanNganHangRepository.save(oldTk);
+            }
+        }
+
+        List<TaoPhieuNhapRequest.ChiTietMonNhapRequest> danhSachMon = request.getDanhSachChiTiet() != null ? request.getDanhSachChiTiet() : request.getItems();
+        if (danhSachMon == null || danhSachMon.isEmpty()) {
+            throw new RuntimeException("Phiếu nhập phải có chi tiết heo!");
+        }
+
+        Long nccId = request.getNhaCungCapId() != null ? request.getNhaCungCapId() : request.getSupplierId();
+        NhaCungCap ncc = nhaCungCapRepository.findById(nccId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhà cung cấp ID: " + nccId));
+
+        BigDecimal tienHangHeo = BigDecimal.ZERO;
+        BigDecimal chiPhiTienXe = request.getChiPhiTienXe() != null ? request.getChiPhiTienXe() : (request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
+        BigDecimal chiPhiTienBai = request.getChiPhiTienBai() != null ? request.getChiPhiTienBai() : (request.getParkingFee() != null ? request.getParkingFee() : BigDecimal.ZERO);
+
+        String loaiHeo = request.getLoaiHeo() != null ? request.getLoaiHeo() : (request.getPorkType() != null ? request.getPorkType() : "hot");
+        String dacDiemHeo = request.getDacDiemHeo() != null ? request.getDacDiemHeo() : (request.getPigFeature() != null ? request.getPigFeature() : "duoi_cut");
+        String nguoiChiu = request.getNguoiChiuTienXe() != null ? request.getNguoiChiuTienXe() : (request.getShippingPayer() != null ? request.getShippingPayer() : "buyer");
+        boolean nccChiu = "supplier".equalsIgnoreCase(nguoiChiu);
+
+        int tongSoConChuyenXe = 0;
+        for (TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq : danhSachMon) {
+            int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
+            tongSoConChuyenXe += soCon;
+        }
+
+        BigDecimal chiPhiPhuMoiCon = BigDecimal.ZERO;
+        if (!nccChiu && tongSoConChuyenXe > 0) {
+            BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
+            chiPhiPhuMoiCon = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        Long bankId = request.getTaiKhoanNganHangId() != null ? request.getTaiKhoanNganHangId() : request.getBankAccountId();
+        TaiKhoanNganHang tkNganHang = null;
+        if (bankId != null) {
+            tkNganHang = taiKhoanNganHangRepository.findById(bankId).orElse(null);
+        }
+
+        pn.getDanhSachChiTiet().clear();
+        List<ChiTietPhieuNhap> danhSachChiTietMoi = new ArrayList<>();
+
+        for (TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq : danhSachMon) {
+            String targetSize = itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType();
+            String donVi = itReq.getDonViTinh() != null ? itReq.getDonViTinh() : (itReq.getUnit() != null ? itReq.getUnit() : "Con");
+            
+            SanPhamHeo sp = timHoacTaoSanPham(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi);
+
+            int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
+            BigDecimal soKg = itReq.getSoKg() != null ? itReq.getSoKg() : (itReq.getWeightKg() != null ? itReq.getWeightKg() : BigDecimal.ZERO);
+            BigDecimal giaVonGoc = itReq.getGiaNhapVon() != null ? itReq.getGiaNhapVon() : (itReq.getCostPrice() != null ? itReq.getCostPrice() : BigDecimal.ZERO);
+            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon);
+
+            boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
+            BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
+            tienHangHeo = tienHangHeo.add(thanhTien);
+
+            if (sp != null) {
+                sp.setSoLuongCon(sp.getSoLuongCon() + (soCon > 0 ? soCon : 1));
+                BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
+                BigDecimal addKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
+                sp.setSoKgTonKho(sp.getSoKgTonKho().add(addKg));
+                sp.setGiaNhapVon(giaVonThucTe);
+                sp.setLoaiHeo(loaiHeo);
+                sp.setDacDiemHeo(dacDiemHeo);
+                sp.setNhaCungCap(ncc);
+                if (tkNganHang != null) {
+                    sp.setTaiKhoanNganHang(tkNganHang);
+                }
+                LocalDate ngay = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
+                sp.setNgayNhap(ngay);
+                sanPhamHeoRepository.save(sp);
+            }
+
+            ChiTietPhieuNhap ctpn = new ChiTietPhieuNhap();
+            ctpn.setPhieuNhapKho(pn);
+            ctpn.setSanPhamHeo(sp);
+            ctpn.setLoaiSize(itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType());
+            ctpn.setDonViTinh(donVi);
+            ctpn.setSoLuongCon(soCon > 0 ? soCon : 1);
+            ctpn.setSoKg(soKg);
+            ctpn.setGiaNhapVon(giaVonThucTe);
+            ctpn.setThanhTienHang(thanhTien);
+
+            danhSachChiTietMoi.add(ctpn);
+        }
+
+        BigDecimal tongTienNhap = tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
+        if (nccChiu) {
+            soTienDaTra = tongTienNhap;
+        }
+        BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
+        LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
+
+        if (tkNganHang == null && ncc != null) {
+            tkNganHang = taiKhoanNganHangRepository.findAll().stream()
+                    .filter(tk -> "NCC".equalsIgnoreCase(tk.getLoaiTaiKhoan()) && (tk.getNhaCungCapId() != null && tk.getNhaCungCapId().equals(ncc.getId())))
+                    .findFirst()
+                    .orElse(null);
+            if (tkNganHang == null) {
+                tkNganHang = taiKhoanNganHangRepository.findAll().stream()
+                        .filter(tk -> "NCC".equalsIgnoreCase(tk.getLoaiTaiKhoan()))
+                        .findFirst()
+                        .orElse(null);
+            }
+        }
+
+        pn.setNhaCungCap(ncc);
+        pn.setNgayNhapKho(ngayNhap);
+        pn.setLoaiHeo(loaiHeo);
+        pn.setDacDiemHeo(dacDiemHeo);
+        pn.setTienHangHeo(tienHangHeo);
+        pn.setChiPhiTienXe(chiPhiTienXe);
+        pn.setChiPhiTienBai(chiPhiTienBai);
+        pn.setNguoiChiuTienXe(nguoiChiu);
+        pn.setTongTienNhap(tongTienNhap);
+        pn.setSoTienDaTra(soTienDaTra);
+        pn.setCongNoConThieu(congNoConThieu);
+        pn.setTaiKhoanNganHangTra(tkNganHang);
+        pn.setGhiChu(request.getGhiChu() != null ? request.getGhiChu() : request.getNotes());
+        pn.getDanhSachChiTiet().addAll(danhSachChiTietMoi);
+
+        PhieuNhapKho phieuDaLuu = phieuNhapKhoRepository.save(pn);
+
+        // Trừ tiền NCC & Ngân Hàng mới
+        if (ncc != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal curBal = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
+            ncc.setCongNoPhaiTra(curBal.subtract(soTienDaTra));
+            nhaCungCapRepository.save(ncc);
+        }
+
+        if (tkNganHang != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
+            tkNganHang.setSoDuHienTai(tkNganHang.getSoDuHienTai().subtract(soTienDaTra));
+            taiKhoanNganHangRepository.save(tkNganHang);
+
+            List<DongTienNganHang> existingDts = dongTienNganHangRepository.findByMaThamChieu(pn.getMaPhieuNhap());
+            DongTienNganHang dt;
+            if (existingDts != null && !existingDts.isEmpty()) {
+                dt = existingDts.get(0);
+                for (int i = 1; i < existingDts.size(); i++) {
+                    dongTienNganHangRepository.delete(existingDts.get(i));
+                }
+            } else {
+                dt = new DongTienNganHang();
+                dt.setMaThamChieu(pn.getMaPhieuNhap());
+                dt.setNgayGiaoDich(LocalDateTime.now());
+            }
+
+            dt.setTaiKhoanNganHang(tkNganHang);
+            dt.setLoaiDongTien("OUT");
+            dt.setSoTien(soTienDaTra.abs());
+            String desc = "Nhập hàng từ NCC: " + (ncc != null ? ncc.getTenNhaCungCap() : "") + " (Mã: " + pn.getMaPhieuNhap();
+            if (nccChiu && chiPhiTienXe.compareTo(BigDecimal.ZERO) > 0) {
+                desc += " – NCC chịu tiền xe " + formatVND(chiPhiTienXe);
+            }
+            desc += ")";
+            dt.setMoTa(desc);
+            dt.setLoaiDoiTuong("NCC");
+            dt.setNhaCungCapId(ncc != null ? ncc.getId() : null);
+            dt.setLoaiNghiepVu("NHAP_CHUYEN_XE_HEO");
+            dt.setLoaiGiaoDich("TRU_TIEN_HANG_NCC");
+            dongTienNganHangRepository.save(dt);
+        }
+
+        return phieuDaLuu;
+    }
+}

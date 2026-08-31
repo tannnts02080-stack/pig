@@ -1,0 +1,24 @@
+{
+  "short_name": "Kho Đông Lạnh",
+  "name": "Quản Lý Bán Hàng Đông Lạnh Pro",
+  "description": "Ứng dụng quản lý kho, bán hàng và công nợ thực phẩm đông lạnh",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b132b",
+  "theme_color": "#0284c7",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

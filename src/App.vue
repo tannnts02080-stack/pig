@@ -1,0 +1,62 @@
+<template>
+  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 font-sans">
+    <!-- Header Navbar -->
+    <Navbar
+      :currentTab="currentTab"
+      @update:currentTab="currentTab = $event"
+      :settings="settings"
+    />
+
+    <!-- Main Content Area -->
+    <main class="flex-1 pb-20 lg:pb-10">
+      <POS v-if="currentTab === 'pos'" />
+      <Products v-if="currentTab === 'products'" />
+      <Inventory v-if="currentTab === 'inventory'" />
+      <Customers v-if="currentTab === 'customers'" />
+      <SizeManager v-if="currentTab === 'sizes'" />
+      <Orders v-if="currentTab === 'orders'" />
+      <BankAccounts v-if="currentTab === 'banks'" />
+      <Reports v-if="currentTab === 'reports'" />
+      <ConnectMobile v-if="currentTab === 'connect'" />
+      <Settings v-if="currentTab === 'settings'" :settings="settings" @refresh="fetchSettings" />
+    </main>
+
+    <!-- Global Dialog & Toast Container -->
+    <GlobalDialog />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import GlobalDialog from './components/GlobalDialog.vue';
+import Navbar from './components/Navbar.vue';
+import POS from './components/POS.vue';
+import Products from './components/Products.vue';
+import Inventory from './components/Inventory.vue';
+import Orders from './components/Orders.vue';
+import BankAccounts from './components/BankAccounts.vue';
+import Reports from './components/Reports.vue';
+import Customers from './components/Customers.vue';
+import SizeManager from './components/SizeManager.vue';
+import ConnectMobile from './components/ConnectMobile.vue';
+import Settings from './components/Settings.vue';
+
+const currentTab = ref('pos');
+const settings = ref({});
+
+const fetchSettings = async () => {
+  try {
+    const res = await fetch('/api/settings');
+    if (res && res.ok) {
+      const data = await res.json();
+      settings.value = data || {};
+    }
+  } catch (e) {
+    console.error("Lỗi tải settings:", e);
+  }
+};
+
+onMounted(() => {
+  fetchSettings();
+});
+</script>
