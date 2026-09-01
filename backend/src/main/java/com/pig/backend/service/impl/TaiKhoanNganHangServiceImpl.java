@@ -104,10 +104,13 @@ public class TaiKhoanNganHangServiceImpl implements TaiKhoanNganHangService {
     @Transactional
     public void xoaTaiKhoan(Long id) {
         try {
-            jdbcTemplate.update("UPDATE phieu_nhap_kho SET tai_khoan_ngan_hang_id = NULL WHERE tai_khoan_ngan_hang_id = ?", id);
-            jdbcTemplate.update("UPDATE don_hang SET tai_khoan_ngan_hang_id = NULL WHERE tai_khoan_ngan_hang_id = ?", id);
-            jdbcTemplate.update("DELETE FROM dong_tien_ngan_hang WHERE tai_khoan_ngan_hang_id = ?", id);
-        } catch (Exception ignored) {}
+            jdbcTemplate.update("UPDATE SAN_PHAM_HEO SET tai_khoan_ngan_hang_id = NULL WHERE tai_khoan_ngan_hang_id = ?", id);
+            jdbcTemplate.update("UPDATE PHIEU_NHAP_KHO SET tai_khoan_ngan_hang_id = NULL WHERE tai_khoan_ngan_hang_id = ?", id);
+            jdbcTemplate.update("UPDATE DON_HANG SET tai_khoan_ngan_hang_id = NULL WHERE tai_khoan_ngan_hang_id = ?", id);
+            jdbcTemplate.update("DELETE FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = ?", id);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi ngắt liên kết tài khoản ngân hàng: " + e.getMessage());
+        }
         taiKhoanNganHangRepository.deleteById(id);
     }
 

@@ -46,7 +46,11 @@ public class TaiKhoanNganHangController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> xoaTaiKhoan(@PathVariable Long id) {
-        taiKhoanNganHangService.xoaTaiKhoan(id);
-        return ResponseEntity.ok(ApiResponse.ok("Đã xóa tài khoản ngân hàng!", null));
+        try {
+            taiKhoanNganHangService.xoaTaiKhoan(id);
+            return ResponseEntity.ok(ApiResponse.ok("Đã xóa tài khoản ngân hàng thành công!", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Không thể xóa tài khoản này vì đã có dữ liệu giao dịch hoặc phiếu nhập liên kết. Bạn có thể bấm Sửa để cập nhật thông tin!"));
+        }
     }
 }

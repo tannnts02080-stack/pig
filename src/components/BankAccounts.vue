@@ -1563,10 +1563,15 @@ const handleDeleteAccount = async (id, name) => {
       window.dispatchEvent(new CustomEvent('pig-banks-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
-      showToast("Lỗi xóa tài khoản: " + (err.message || 'Không thể xóa'), "error");
+      const rawMsg = err.message || '';
+      let friendlyMsg = "Không thể xóa tài khoản này vì đã có dữ liệu sản phẩm hoặc phiếu nhập liên kết. Bạn có thể bấm nút Sửa để chỉnh sửa thông tin!";
+      if (rawMsg && !rawMsg.includes("could not execute statement") && !rawMsg.includes("FOREIGN KEY") && !rawMsg.includes("REFERENCE constraint")) {
+        friendlyMsg = rawMsg;
+      }
+      showToast(friendlyMsg, "warning");
     }
   } catch (e) {
-    showToast("Lỗi kết nối máy chủ, vui lòng thử lại: " + e.message, "error");
+    showToast("Không thể kết nối máy chủ, vui lòng thử lại sau!", "error");
   }
 };
 
