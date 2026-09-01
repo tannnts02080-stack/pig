@@ -85,7 +85,7 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                         if (i == 0) {
                             Object spId = r.get("san_pham_heo_id");
                             if (spId != null) {
-                                jdbcTemplate.update("UPDATE SAN_PHAM_HEO SET so_luong_con = ?, gia_nhap_von = ?, so_kg_tonKho = ? WHERE id = ?", soCon, giaVon, soCon * 5.0, spId);
+                                jdbcTemplate.update("UPDATE SAN_PHAM_HEO SET so_luong_con = ?, gia_nhap_von = ?, so_kg_ton_kho = ? WHERE id = ?", soCon, giaVon, soCon * 5.0, spId);
                             }
                         } else {
                             String maSP = "SP-" + System.currentTimeMillis() + "-" + i;
