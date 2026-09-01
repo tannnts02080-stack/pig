@@ -1,10 +1,18 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 font-sans">
+  <!-- Security Login Gate (admin / giadinh@) -->
+  <LoginGate
+    v-if="!isAuthenticated"
+    @authenticated="isAuthenticated = true"
+  />
+
+  <!-- Main Authenticated Application -->
+  <div v-else class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 font-sans">
     <!-- Header Navbar -->
     <Navbar
       :currentTab="currentTab"
       @update:currentTab="currentTab = $event"
       :settings="settings"
+      @logout="handleLogout"
     />
 
     <!-- Main Content Area -->
@@ -18,7 +26,7 @@
       <BankAccounts v-if="currentTab === 'banks'" />
       <Reports v-if="currentTab === 'reports'" />
       <ConnectMobile v-if="currentTab === 'connect'" />
-      <Settings v-if="currentTab === 'settings'" :settings="settings" @refresh="fetchSettings" />
+      <Settings v-if="currentTab === 'settings'" :settings="settings" @refresh="fetchSettings" @logout="handleLogout" />
     </main>
 
     <!-- Global Dialog & Toast Container -->
@@ -28,6 +36,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import LoginGate from './components/LoginGate.vue';
 import GlobalDialog from './components/GlobalDialog.vue';
 import Navbar from './components/Navbar.vue';
 import POS from './components/POS.vue';
@@ -41,8 +50,19 @@ import SizeManager from './components/SizeManager.vue';
 import ConnectMobile from './components/ConnectMobile.vue';
 import Settings from './components/Settings.vue';
 
+const isAuthenticated = ref(false);
 const currentTab = ref('pos');
 const settings = ref({});
+
+const checkAuth = () => {
+  const auth = localStorage.getItem('kho_heo_authenticated');
+  isAuthenticated.value = auth === 'true';
+};
+
+const handleLogout = () => {
+  localStorage.removeItem('kho_heo_authenticated');
+  isAuthenticated.value = false;
+};
 
 const fetchSettings = async () => {
   try {
@@ -57,6 +77,7 @@ const fetchSettings = async () => {
 };
 
 onMounted(() => {
+  checkAuth();
   fetchSettings();
 });
 </script>
