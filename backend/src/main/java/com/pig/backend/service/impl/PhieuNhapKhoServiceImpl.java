@@ -97,45 +97,33 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         return df.format(val.setScale(0, java.math.RoundingMode.HALF_UP)) + " đ";
     }
 
-    private SanPhamHeo timHoacTaoSanPham(String targetSize, String loaiHeo, String dacDiemHeo, NhaCungCap ncc, TaiKhoanNganHang tkNganHang, String donViTinh, BigDecimal giaVonThucTe, LocalDate ngayNhap, String ghiChu) {
+    private SanPhamHeo taoMoiSanPhamHeo(String targetSize, String loaiHeo, String dacDiemHeo, NhaCungCap ncc, TaiKhoanNganHang tkNganHang, String donViTinh, BigDecimal giaVonThucTe, int soCon, BigDecimal soKg, LocalDate ngayNhap, String ghiChu) {
         String finalLoaiHeo = loaiHeo != null ? loaiHeo : "hot";
         String finalDacDiem = dacDiemHeo != null ? dacDiemHeo : "duoi_cut";
-        Long nccId = ncc != null ? ncc.getId() : null;
-
-        // Chỉ tìm sản phẩm đã có nếu CÙNG Size, CÙNG Loại Heo, CÙNG Đặc Điểm, CÙNG NCC VÀ CÙNG ĐÚNG GIÁ VỐN NHẬP!
-        // Nếu khác giá vốn (ví dụ đợt 1 250k vs đợt 2 200k) thì tách riêng thành từng ô heo khác nhau!
-        SanPhamHeo sp = sanPhamHeoRepository.findAll().stream()
-            .filter(p -> {
-                boolean sizeMatch = targetSize != null && (targetSize.equalsIgnoreCase(p.getLoaiSize()) || targetSize.equalsIgnoreCase(p.getTenSanPham()));
-                boolean loaiMatch = finalLoaiHeo.equalsIgnoreCase(p.getLoaiHeo() != null ? p.getLoaiHeo() : "hot");
-                boolean dacDiemMatch = finalDacDiem.equalsIgnoreCase(p.getDacDiemHeo() != null ? p.getDacDiemHeo() : "duoi_cut");
-                boolean nccMatch = (nccId == null && p.getNhaCungCap() == null) || (nccId != null && p.getNhaCungCap() != null && nccId.equals(p.getNhaCungCap().getId()));
-                boolean giaVonMatch = giaVonThucTe != null && p.getGiaNhapVon() != null && p.getGiaNhapVon().compareTo(giaVonThucTe) == 0;
-                return sizeMatch && loaiMatch && dacDiemMatch && nccMatch && giaVonMatch;
-            })
-            .findFirst()
-            .orElse(null);
-
-        if (sp == null) {
-            sp = new SanPhamHeo();
-            sp.setMaSanPham("SP-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000));
-            sp.setTenSanPham(targetSize != null ? targetSize : "Sản phẩm mới");
-            sp.setLoaiSize(targetSize != null ? targetSize : "Khác");
-            sp.setLoaiHeo(finalLoaiHeo);
-            sp.setDacDiemHeo(finalDacDiem);
-            sp.setDonViTinh(donViTinh != null ? donViTinh : "Con");
-            sp.setNhaCungCap(ncc);
-            sp.setTaiKhoanNganHang(tkNganHang);
-            sp.setSoLuongCon(0);
-            sp.setSoKgTonKho(BigDecimal.ZERO);
-            sp.setGiaNhapVon(giaVonThucTe != null ? giaVonThucTe : BigDecimal.ZERO);
-            sp.setGiaBanRa(BigDecimal.ZERO);
-            sp.setNgayNhap(ngayNhap != null ? ngayNhap : LocalDate.now());
-            sp.setGhiChu(ghiChu);
-            sp.setChiTietNhap(ghiChu);
-            sp = sanPhamHeoRepository.save(sp);
-        }
-        return sp;
+        
+        SanPhamHeo sp = new SanPhamHeo();
+        sp.setMaSanPham("SP-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 10000));
+        sp.setTenSanPham(targetSize != null ? targetSize : "Heo size");
+        sp.setLoaiSize(targetSize != null ? targetSize : "Khác");
+        sp.setLoaiHeo(finalLoaiHeo);
+        sp.setDacDiemHeo(finalDacDiem);
+        sp.setDonViTinh(donViTinh != null ? donViTinh : "Con");
+        sp.setNhaCungCap(ncc);
+        sp.setTaiKhoanNganHang(tkNganHang);
+        sp.setSoLuongCon(soCon > 0 ? soCon : 1);
+        
+        boolean isKg = "Kg".equalsIgnoreCase(donViTinh) || (soKg != null && soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donViTinh));
+        BigDecimal w = new BigDecimal("5.0");
+        BigDecimal initialKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
+        sp.setSoKgTonKho(initialKg);
+        sp.setTrongLuongMoiCon(w);
+        sp.setGiaNhapVon(giaVonThucTe != null ? giaVonThucTe : BigDecimal.ZERO);
+        sp.setGiaBanRa(BigDecimal.ZERO);
+        sp.setNgayNhap(ngayNhap != null ? ngayNhap : LocalDate.now());
+        sp.setGhiChu(ghiChu);
+        sp.setChiTietNhap(ghiChu);
+        
+        return sanPhamHeoRepository.save(sp);
     }
 
     @Override
@@ -194,28 +182,12 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon).max(BigDecimal.ZERO);
             LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
             
-            SanPhamHeo sp = timHoacTaoSanPham(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, ngayNhap, request.getGhiChu());
+            // LUÔN TẠO MỚI 1 SẢN PHẨM RIÊNG BIỆT CHO MỖI ĐƠN/DÒNG NHẬP (KHÔNG BAO GIỜ TỰ ĐỘNG GỘP VÀO SẢN PHẨM CŨ)
+            SanPhamHeo sp = taoMoiSanPhamHeo(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, soCon, soKg, ngayNhap, request.getGhiChu());
 
             boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
             BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
             tienHangHeo = tienHangHeo.add(thanhTien);
-
-            if (sp != null) {
-                sp.setSoLuongCon(sp.getSoLuongCon() + (soCon > 0 ? soCon : 1));
-                BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
-                BigDecimal addKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
-                sp.setSoKgTonKho(sp.getSoKgTonKho().add(addKg));
-                sp.setGiaNhapVon(giaVonThucTe);
-                sp.setLoaiHeo(loaiHeo);
-                sp.setDacDiemHeo(dacDiemHeo);
-                sp.setNhaCungCap(ncc);
-                if (tkNganHang != null) {
-                    sp.setTaiKhoanNganHang(tkNganHang);
-                }
-                LocalDate ngay = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
-                sp.setNgayNhap(ngay);
-                sanPhamHeoRepository.save(sp);
-            }
 
             ChiTietPhieuNhap ctpn = new ChiTietPhieuNhap();
             ctpn.setSanPhamHeo(sp);
@@ -398,28 +370,11 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon).max(BigDecimal.ZERO);
             LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
             
-            SanPhamHeo sp = timHoacTaoSanPham(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, ngayNhap, request.getGhiChu());
+            SanPhamHeo sp = taoMoiSanPhamHeo(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, soCon, soKg, ngayNhap, request.getGhiChu());
 
             boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
             BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
             tienHangHeo = tienHangHeo.add(thanhTien);
-
-            if (sp != null) {
-                sp.setSoLuongCon(sp.getSoLuongCon() + (soCon > 0 ? soCon : 1));
-                BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
-                BigDecimal addKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
-                sp.setSoKgTonKho(sp.getSoKgTonKho().add(addKg));
-                sp.setGiaNhapVon(giaVonThucTe);
-                sp.setLoaiHeo(loaiHeo);
-                sp.setDacDiemHeo(dacDiemHeo);
-                sp.setNhaCungCap(ncc);
-                if (tkNganHang != null) {
-                    sp.setTaiKhoanNganHang(tkNganHang);
-                }
-                LocalDate ngay = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
-                sp.setNgayNhap(ngay);
-                sanPhamHeoRepository.save(sp);
-            }
 
             ChiTietPhieuNhap ctpn = new ChiTietPhieuNhap();
             ctpn.setPhieuNhapKho(pn);
