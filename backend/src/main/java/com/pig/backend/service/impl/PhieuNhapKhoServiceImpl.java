@@ -210,10 +210,10 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             danhSachChiTiet.add(ctpn);
         }
 
-        BigDecimal tongTienNhap = tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal tongTienNhap = nccChiu ? tienHangHeo : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
         BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
         if (nccChiu) {
-            soTienDaTra = tongTienNhap; // Nếu NCC chịu tiền xe, tài khoản NCC bị trừ cả tiền hàng + tiền xe + tiền bãi
+            soTienDaTra = tienHangHeo; // Nếu NCC bao tiền xe, tổng chi phí nhập của mình chỉ bằng đúng tiền hàng heo
         }
         BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
         LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
@@ -408,10 +408,10 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             danhSachChiTietMoi.add(ctpn);
         }
 
-        BigDecimal tongTienNhap = tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal tongTienNhap = nccChiu ? tienHangHeo : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
         BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
         if (nccChiu) {
-            soTienDaTra = tongTienNhap;
+            soTienDaTra = tienHangHeo;
         }
         BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
         LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
