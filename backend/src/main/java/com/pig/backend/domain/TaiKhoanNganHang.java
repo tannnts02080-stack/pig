@@ -20,7 +20,7 @@ public class TaiKhoanNganHang {
     @Column(name = "ten_ngan_hang", length = 150, nullable = false)
     private String tenNganHang;
 
-    @Column(name = "so_tai_khoan", length = 50, nullable = false, unique = true)
+    @Column(name = "so_tai_khoan", length = 50, nullable = false)
     private String soTaiKhoan;
 
     @Column(name = "chu_tai_khoan", length = 150, nullable = false)
