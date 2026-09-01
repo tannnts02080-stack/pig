@@ -2046,15 +2046,6 @@ watch(() => importForm.value.supplierId, (newSupId) => {
   }
 });
 
-watch(() => editForm.value.supplierId, (newSupId) => {
-  if (newSupId && supplierBankAccounts.value.length > 0) {
-    const matched = supplierBankAccounts.value.find(b => (b.nhaCungCapId || b.supplierId) == newSupId);
-    if (matched) {
-      editForm.value.bankAccountId = matched.id;
-    }
-  }
-});
-
 const flattenedSizes = computed(() => {
   const result = [];
   sizes.value.forEach(s => {
@@ -2383,6 +2374,15 @@ const editForm = ref({
       costPrice: 200000
     }
   ]
+});
+
+watch(() => editForm.value.supplierId, (newSupId) => {
+  if (newSupId && supplierBankAccounts.value.length > 0) {
+    const matched = supplierBankAccounts.value.find(b => (b.nhaCungCapId || b.supplierId) == newSupId);
+    if (matched) {
+      editForm.value.bankAccountId = matched.id;
+    }
+  }
 });
 
 const handleAddEditItemRow = (type = 'per_size') => {
