@@ -16,19 +16,15 @@ public class SanPhamHeo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Nationalized
     @Column(name = "ma_san_pham", length = 50, nullable = false)
     private String maSanPham;
 
-    @Nationalized
     @Column(name = "ten_san_pham", length = 255, nullable = false)
     private String tenSanPham;
 
-    @Nationalized
     @Column(name = "hinh_anh", columnDefinition = "NVARCHAR(MAX)")
     private String hinhAnh; // Ảnh đại diện chính bán hàng
 
-    @Nationalized
     @Column(name = "danh_sach_hinh_anh", columnDefinition = "NVARCHAR(MAX)")
     private String danhSachHinhAnh; // Thư viện nhiều ảnh đẹp bán hàng (JSON array)
 
@@ -42,23 +38,18 @@ public class SanPhamHeo {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private TaiKhoanNganHang taiKhoanNganHang;
 
-    @Nationalized
     @Column(name = "loai_heo", length = 50, nullable = false)
     private String loaiHeo = "hot"; // 'hot' (Hàng nóng) / 'cold' (Hàng lạnh) / 'wrapped' (Cuộn bọc)
 
-    @Nationalized
     @Column(name = "dac_diem_heo", length = 50)
     private String dacDiemHeo = "duoi_cut"; // 'duoi_cut' (Đuôi cụt), 'duoi_dai' (Đuôi dài), 'rung_lai' (Rừng lai), 'mong_cai' (Móng cái)
 
-    @Nationalized
     @Column(name = "nhom_gop_id", length = 100)
     private String nhomGopId; // ID nhóm gộp nếu được kéo gộp với các lô khác (null nếu tách riêng)
 
-    @Nationalized
     @Column(name = "loai_size", length = 100, nullable = false)
     private String loaiSize; // Heo 5Kg, Heo 7Kg, Thịt Ba Chỉ...
 
-    @Nationalized
     @Column(name = "don_vi_tinh", length = 20, nullable = false)
     private String donViTinh = "Con"; // 'Con' hoặc 'Kg'
 
@@ -80,11 +71,9 @@ public class SanPhamHeo {
     @Column(name = "ngay_nhap")
     private LocalDate ngayNhap;
 
-    @Nationalized
     @Column(name = "chi_tiet_nhap", columnDefinition = "NVARCHAR(MAX)")
     private String chiTietNhap;
 
-    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 

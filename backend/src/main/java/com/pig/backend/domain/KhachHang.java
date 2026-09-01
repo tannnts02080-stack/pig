@@ -15,22 +15,18 @@ public class KhachHang {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Nationalized
     @Column(name = "ten_khach_hang", length = 255, nullable = false)
     private String tenKhachHang;
 
-    @Nationalized
     @Column(name = "so_dien_thoai", length = 20)
     private String soDienThoai;
 
-    @Nationalized
     @Column(name = "dia_chi", length = 500)
     private String diaChi;
 
     @Column(name = "cong_no_hien_tai", precision = 18, scale = 2)
     private BigDecimal congNoHienTai = BigDecimal.ZERO;
 
-    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 

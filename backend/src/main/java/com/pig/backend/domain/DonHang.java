@@ -17,7 +17,6 @@ public class DonHang {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Nationalized
     @Column(name = "ma_don_hang", length = 50, nullable = false)
     private String maDonHang;
 
@@ -29,15 +28,12 @@ public class DonHang {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private KhachHang khachHang;
 
-    @Nationalized
     @Column(name = "ten_khach_hang", length = 255, nullable = false)
     private String tenKhachHang;
 
-    @Nationalized
     @Column(name = "so_dien_thoai_khach", length = 20)
     private String soDienThoaiKhach;
 
-    @Nationalized
     @Column(name = "dia_chi_giao_hang", length = 500)
     private String diaChiGiaoHang;
 
@@ -50,7 +46,6 @@ public class DonHang {
     @Column(name = "chi_phi_tien_xe_giao", precision = 18, scale = 2)
     private BigDecimal chiPhiTienXeGiao = BigDecimal.ZERO; // Tiền xe ship
 
-    @Nationalized
     @Column(name = "nguoi_chiu_tien_xe", length = 50)
     private String nguoiChiuTienXe = "buyer"; // 'buyer' (Khách chịu) hoặc 'shop' (Mình chịu / Freeship)
 
@@ -60,7 +55,6 @@ public class DonHang {
     @Column(name = "tong_tien_loi", precision = 18, scale = 2, nullable = false)
     private BigDecimal tongTienLoi = BigDecimal.ZERO; // Tiền Lời = Bán - Vốn - Xe - Khác
 
-    @Nationalized
     @Column(name = "phuong_thuc_thanh_toan", length = 50, nullable = false)
     private String phuongThucThanhToan = "Cash"; // 'Cash' / 'Bank'
 
@@ -69,17 +63,15 @@ public class DonHang {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private TaiKhoanNganHang taiKhoanNganHangNhan;
 
-    @Column(name = "so_tien_khach_tra", precision = 18, scale = 2, nullable = false)
-    private BigDecimal soTienKhachTra = BigDecimal.ZERO;
+    @Column(name = "so_tien_da_thanh_toan", precision = 18, scale = 2)
+    private BigDecimal soTienDaThanhToan = BigDecimal.ZERO;
 
-    @Column(name = "cong_no_khach_thieu", precision = 18, scale = 2)
-    private BigDecimal congNoKhachThieu = BigDecimal.ZERO;
+    @Column(name = "cong_no_con_lai", precision = 18, scale = 2)
+    private BigDecimal congNoConLai = BigDecimal.ZERO;
 
-    @Nationalized
-    @Column(name = "trang_thai_don", length = 50, nullable = false)
+    @Transient
     private String trangThaiDon = "Completed"; // 'Completed' / 'Pending'
 
-    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
@@ -164,19 +156,19 @@ public class DonHang {
     public TaiKhoanNganHang getBankAccount() { return taiKhoanNganHangNhan; }
     public void setBankAccount(TaiKhoanNganHang bankAccount) { this.taiKhoanNganHangNhan = bankAccount; }
 
-    public BigDecimal getSoTienKhachTra() { return soTienKhachTra; }
-    public void setSoTienKhachTra(BigDecimal soTienKhachTra) { this.soTienKhachTra = soTienKhachTra; }
-    public BigDecimal getPaidAmount() { return soTienKhachTra; }
-    public void setPaidAmount(BigDecimal paidAmount) { this.soTienKhachTra = paidAmount; }
-    public BigDecimal getSoTienDaThanhToan() { return soTienKhachTra; }
-    public void setSoTienDaThanhToan(BigDecimal soTienDaThanhToan) { this.soTienKhachTra = soTienDaThanhToan; }
+    public BigDecimal getSoTienKhachTra() { return soTienDaThanhToan; }
+    public void setSoTienKhachTra(BigDecimal soTienKhachTra) { this.soTienDaThanhToan = soTienKhachTra; }
+    public BigDecimal getPaidAmount() { return soTienDaThanhToan; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.soTienDaThanhToan = paidAmount; }
+    public BigDecimal getSoTienDaThanhToan() { return soTienDaThanhToan; }
+    public void setSoTienDaThanhToan(BigDecimal soTienDaThanhToan) { this.soTienDaThanhToan = soTienDaThanhToan; }
 
-    public BigDecimal getCongNoKhachThieu() { return congNoKhachThieu; }
-    public void setCongNoKhachThieu(BigDecimal congNoKhachThieu) { this.congNoKhachThieu = congNoKhachThieu; }
-    public BigDecimal getDebtAmount() { return congNoKhachThieu; }
-    public void setDebtAmount(BigDecimal debtAmount) { this.congNoKhachThieu = debtAmount; }
-    public BigDecimal getCongNoConLai() { return congNoKhachThieu; }
-    public void setCongNoConLai(BigDecimal congNoConLai) { this.congNoKhachThieu = congNoConLai; }
+    public BigDecimal getCongNoKhachThieu() { return congNoConLai; }
+    public void setCongNoKhachThieu(BigDecimal congNoKhachThieu) { this.congNoConLai = congNoKhachThieu; }
+    public BigDecimal getDebtAmount() { return congNoConLai; }
+    public void setDebtAmount(BigDecimal debtAmount) { this.congNoConLai = debtAmount; }
+    public BigDecimal getCongNoConLai() { return congNoConLai; }
+    public void setCongNoConLai(BigDecimal congNoConLai) { this.congNoConLai = congNoConLai; }
 
     public String getTrangThaiDon() { return trangThaiDon; }
     public void setTrangThaiDon(String trangThaiDon) { this.trangThaiDon = trangThaiDon; }

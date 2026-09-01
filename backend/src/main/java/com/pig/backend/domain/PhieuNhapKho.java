@@ -18,7 +18,6 @@ public class PhieuNhapKho {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Nationalized
     @Column(name = "ma_phieu_nhap", length = 50, nullable = false)
     private String maPhieuNhap;
 
@@ -30,15 +29,12 @@ public class PhieuNhapKho {
     @Column(name = "ngay_nhap_kho", nullable = false)
     private LocalDate ngayNhapKho;
 
-    @Nationalized
     @Column(name = "loai_heo", length = 50, nullable = false)
     private String loaiHeo = "hot"; // 'hot' / 'cold' / 'wrapped'
 
-    @Nationalized
     @Column(name = "dac_diem_heo", length = 50)
     private String dacDiemHeo = "duoi_cut"; // 'duoi_cut', 'duoi_dai', 'rung_lai', 'mong_cai'
 
-    @Nationalized
     @Column(name = "hinh_anh_chuyen_xe", columnDefinition = "NVARCHAR(MAX)")
     private String hinhAnhChuyenXe; // Ảnh thực tế heo mới về, heo xấu/lỗi để đối chiếu (JSON array)
 
@@ -51,7 +47,6 @@ public class PhieuNhapKho {
     @Column(name = "chi_phi_tien_bai", precision = 18, scale = 2, nullable = false)
     private BigDecimal chiPhiTienBai = BigDecimal.ZERO; // Chi phí tiền bến bãi / bốc xếp
 
-    @Nationalized
     @Column(name = "nguoi_chiu_tien_xe", length = 50)
     private String nguoiChiuTienXe = "buyer"; // 'buyer' (Mình chịu) hoặc 'supplier' (NCC chịu)
 
@@ -69,7 +64,6 @@ public class PhieuNhapKho {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private TaiKhoanNganHang taiKhoanNganHangTra;
 
-    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
