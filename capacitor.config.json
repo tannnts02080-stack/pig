@@ -1,5 +1,9 @@
 {
   "appId": "com.pig.warehouse",
   "appName": "Quản lý kho Heo",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "http://157.66.219.32",
+    "cleartext": true
+  }
 }
