@@ -51,6 +51,19 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
         safeAddColumn("TAI_KHOAN_NGAN_HANG", "ghi_chu", "NVARCHAR(MAX)");
         safeAddColumn("TAI_KHOAN_NGAN_HANG", "ten_nguoi_nha", "NVARCHAR(150)");
 
+        try {
+            // Chuẩn hóa lại các phiếu nhập cũ theo logic NCC bao tiền xe
+            jdbcTemplate.execute("UPDATE PHIEU_NHAP_KHO SET tong_tien_nhap = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END, so_tien_da_tra = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END WHERE nguoi_chiu_tien_xe IS NOT NULL;");
+            
+            // Cập nhật lại số tiền trong bảng dòng tiền
+            jdbcTemplate.execute("UPDATE DONG_TIEN_NGAN_HANG SET so_tien = p.so_tien_da_tra FROM DONG_TIEN_NGAN_HANG dt INNER JOIN PHIEU_NHAP_KHO p ON dt.ma_tham_chieu = p.ma_phieu_nhap;");
+            
+            // Cân đối lại số dư tài khoản ngân hàng NCC đúng theo thực tế
+            jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
+        } catch (Exception e) {
+            log.warn("Migration balance recalculation note: {}", e.getMessage());
+        }
+
         log.info("Database schema migration check completed successfully!");
     }
 

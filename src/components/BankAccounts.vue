@@ -179,11 +179,11 @@
           <!-- HEADER THẺ -->
           <div class="flex items-start justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400">
+              <div class="w-11 h-11 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400 shrink-0">
                 <Building2 class="w-5 h-5" />
               </div>
               <div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <h3 class="font-black text-white text-sm sm:text-base leading-snug">{{ acc.bankName || acc.tenNganHang }}</h3>
                 </div>
                 <p class="text-xs font-mono text-cyan-400 font-bold mt-0.5 tracking-wide">{{ acc.accountNumber || acc.soTaiKhoan }}</p>
@@ -208,11 +208,22 @@
             </div>
           </div>
 
+          <!-- BADGE NHẬN BIẾT TÀI KHOẢN CỦA NCC NÀO (HIỂN / KIỆT / ...) -->
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-slate-950 border border-amber-500/30">
+            <div class="flex items-center gap-1.5 text-xs font-black text-amber-300">
+              <span>🏭 Nhà Cung Cấp:</span>
+              <span class="text-white text-sm font-black">{{ getSupplierNameForAccount(acc) }}</span>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              STK Đối Tác
+            </span>
+          </div>
+
           <!-- THÔNG TIN NCC VÀ SỐ DƯ TÀI KHOẢN NCC (ÂM HOẶC DƯƠNG) -->
           <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
             <div class="flex items-center justify-between text-xs">
-              <span class="text-[10px] uppercase font-bold text-slate-500">Chủ TK / NCC</span>
-              <span class="font-black text-white uppercase truncate max-w-[180px]">{{ acc.accountHolder || acc.chuTaiKhoan }}</span>
+              <span class="text-[10px] uppercase font-bold text-slate-500">Tên Chủ Tài Khoản:</span>
+              <span class="font-black text-cyan-300 uppercase truncate max-w-[180px]">{{ acc.accountHolder || acc.chuTaiKhoan }}</span>
             </div>
 
             <!-- HIỂN THỊ SỐ DƯ TÀI KHOẢN NCC (ÂM / DƯƠNG) -->
@@ -1185,6 +1196,15 @@ const supplierAccounts = computed(() => {
 const familyAccounts = computed(() => {
   return accounts.value.filter(a => (a.loaiTaiKhoan || a.accountType) === 'NGUOI_NHA');
 });
+
+const getSupplierNameForAccount = (acc) => {
+  const supId = acc.nhaCungCapId || acc.supplierId;
+  if (!supId) {
+    return acc.accountHolder || acc.chuTaiKhoan || 'Chưa gán NCC';
+  }
+  const sup = suppliers.value.find(s => String(s.id) === String(supId));
+  return sup ? (sup.tenNhaCungCap || sup.name) : (acc.accountHolder || acc.chuTaiKhoan || `NCC #${supId}`);
+};
 
 // Lấy số dư tài khoản của NCC (+ = Dư tiền/cọc, - = Âm tiền/nợ NCC)
 const getSupplierBalance = (acc) => {

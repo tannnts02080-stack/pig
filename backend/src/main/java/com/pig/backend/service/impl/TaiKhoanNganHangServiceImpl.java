@@ -187,6 +187,11 @@ public class TaiKhoanNganHangServiceImpl implements TaiKhoanNganHangService {
     @Transactional
     public void xoaTatCaDongTien() {
         dongTienNganHangRepository.deleteAll();
+        List<TaiKhoanNganHang> list = taiKhoanNganHangRepository.findAll();
+        for (TaiKhoanNganHang tk : list) {
+            tk.setSoDuHienTai(BigDecimal.ZERO);
+        }
+        taiKhoanNganHangRepository.saveAll(list);
     }
 
     @Override

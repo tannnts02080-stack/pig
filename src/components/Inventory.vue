@@ -1022,10 +1022,10 @@
               </label>
               <select
                 v-model="importForm.bankAccountId"
-                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer"
+                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer font-medium"
               >
                 <option v-for="b in supplierBankAccounts" :key="b.id" :value="b.id">
-                  {{ b.bankName || b.tenNganHang }} - {{ b.accountNumber || b.soTaiKhoan }} ({{ b.accountHolder || b.chuTaiKhoan }}) - Dư: {{ formatVND(b.balance || b.soDuHienTai) }}
+                  [🏭 NCC: {{ getSupplierNameForBank(b) }}] {{ b.bankName || b.tenNganHang }} - {{ b.accountNumber || b.soTaiKhoan }} ({{ b.accountHolder || b.chuTaiKhoan }}) - Dư: {{ formatVND(b.balance || b.soDuHienTai) }}
                 </option>
               </select>
             </div>
@@ -1534,10 +1534,10 @@
               </label>
               <select
                 v-model="editForm.bankAccountId"
-                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer"
+                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer font-medium"
               >
                 <option v-for="b in supplierBankAccounts" :key="b.id" :value="b.id">
-                  {{ b.bankName || b.tenNganHang }} - {{ b.accountNumber || b.soTaiKhoan }} ({{ b.accountHolder || b.chuTaiKhoan }}) - Dư: {{ formatVND(b.balance || b.soDuHienTai) }}
+                  [🏭 NCC: {{ getSupplierNameForBank(b) }}] {{ b.bankName || b.tenNganHang }} - {{ b.accountNumber || b.soTaiKhoan }} ({{ b.accountHolder || b.chuTaiKhoan }}) - Dư: {{ formatVND(b.balance || b.soDuHienTai) }}
                 </option>
               </select>
             </div>
@@ -2026,6 +2026,33 @@ const handleCurrencyInput = (e, targetObj, key) => {
 
 const supplierBankAccounts = computed(() => {
   return bankAccounts.value.filter(b => (b.loaiTaiKhoan || b.accountType || 'NCC') === 'NCC');
+});
+
+const getSupplierNameForBank = (b) => {
+  const supId = b.nhaCungCapId || b.supplierId;
+  if (!supId) {
+    return b.accountHolder || b.chuTaiKhoan || 'Chưa gán NCC';
+  }
+  const sup = suppliers.value.find(s => String(s.id) === String(supId));
+  return sup ? (sup.tenNhaCungCap || sup.name) : (b.accountHolder || b.chuTaiKhoan || `NCC #${supId}`);
+};
+
+watch(() => importForm.value.supplierId, (newSupId) => {
+  if (newSupId && supplierBankAccounts.value.length > 0) {
+    const matched = supplierBankAccounts.value.find(b => (b.nhaCungCapId || b.supplierId) == newSupId);
+    if (matched) {
+      importForm.value.bankAccountId = matched.id;
+    }
+  }
+});
+
+watch(() => editForm.value.supplierId, (newSupId) => {
+  if (newSupId && supplierBankAccounts.value.length > 0) {
+    const matched = supplierBankAccounts.value.find(b => (b.nhaCungCapId || b.supplierId) == newSupId);
+    if (matched) {
+      editForm.value.bankAccountId = matched.id;
+    }
+  }
 });
 
 const flattenedSizes = computed(() => {
