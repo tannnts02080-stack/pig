@@ -6,6 +6,14 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '480px', // Extra small devices (large phones)
+        'sm': '640px', // Small devices (tablets)
+        'md': '768px', // Medium devices
+        'lg': '1024px', // Large devices
+        'xl': '1280px', // Extra large devices
+        '2xl': '1536px', // 2X Extra large devices
+      },
       colors: {
         ice: {
           50: '#f0f9ff',
@@ -36,6 +44,12 @@ export default {
         'glow': '0 0 20px -5px rgba(56, 189, 248, 0.4)',
         'glow-emerald': '0 0 20px -5px rgba(16, 185, 129, 0.4)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
       },
     },
   },

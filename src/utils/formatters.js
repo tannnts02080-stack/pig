@@ -89,3 +89,32 @@ export function getExpiryStatus(expiryDateStr) {
     };
   }
 }
+
+/**
+ * Format số tiền ngắn gọn cho mobile (1.5M, 2.3K, 1.2 tỷ)
+ */
+export function formatVNDCompact(value) {
+  if (value === undefined || value === null || isNaN(value) || value === '') return '0₫';
+  const num = Number(value);
+  const absValue = Math.abs(num);
+  
+  if (absValue >= 1000000000) {
+    return (num / 1000000000).toFixed(1) + ' tỷ';
+  }
+  if (absValue >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (absValue >= 1000) {
+    return (num / 1000).toFixed(0) + 'K';
+  }
+  return formatNumber(num) + '₫';
+}
+
+/**
+ * Truncate text với ellipsis cho mobile
+ */
+export function truncateText(text, maxLength = 20) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}

@@ -32,6 +32,28 @@
     background-color: #0f172a;
     color: #f8fafc;
   }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    body {
+      font-size: 14px;
+    }
+    
+    /* Larger touch targets for mobile */
+    button, a, input, select, textarea {
+      min-height: 44px;
+    }
+    
+    /* Prevent zoom on input focus in iOS */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
 }
 
 /* Custom Scrollbars */
@@ -85,6 +107,58 @@
   animation: frostGlow 3s ease-in-out infinite;
 }
 
+/* Mobile-specific utilities */
+@layer utilities {
+  /* Safe area support for mobile notches */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Prevent text selection on touch devices */
+  .touch-manipulation {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  /* Smooth momentum scrolling for mobile */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Touch-friendly active states */
+  .active-scale {
+    transition: transform 0.1s ease;
+  }
+  
+  .active-scale:active {
+    transform: scale(0.95);
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
 /* Print CSS for Thermal Printers & Invoices */
 @media print {
   body * {
@@ -112,4 +186,37 @@
   .no-print {
     display: none !important;
   }
+}
+
+/* Animation for mobile modal slide up */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* PWA & Mobile specific */
+@media (display-mode: standalone) {
+  body {
+    /* PWA-specific styles */
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Responsive breakpoints helper */
+@media (min-width: 480px) {
+  .xs\:block { display: block; }
+  .xs\:inline { display: inline; }
+  .xs\:flex { display: flex; }
+  .xs\:grid { display: grid; }
+  .xs\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

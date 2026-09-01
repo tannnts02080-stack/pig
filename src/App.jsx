@@ -9,6 +9,7 @@ import Reports from './components/Reports';
 import Customers from './components/Customers';
 import ConnectMobile from './components/ConnectMobile';
 import Settings from './components/Settings';
+import { api } from './utils/api';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('pos');
@@ -16,11 +17,8 @@ export default function App() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings');
-      if (res && res.ok) {
-        const data = await res.json();
-        setSettings(data || {});
-      }
+      const data = await api.getSettings();
+      setSettings(data || {});
     } catch (e) {
       console.error("Lỗi tải settings:", e);
     }

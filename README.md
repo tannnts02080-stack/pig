@@ -3,6 +3,28 @@
 > **Backend**: Spring Boot 3 + Hibernate JPA (Auto-DDL `update`) + SQL Server Database `Pig`.  
 > **Frontend**: React 18 + Vite + TailwindCSS (Hỗ trợ giao diện Máy tính & Điện thoại Android).  
 > **Schema**: 100% Tên bảng và tên cột bằng Tiếng Anh chuẩn, RESTful API v1.
+> 📱 **Mobile Ready**: Responsive design, PWA support, và có thể build thành APK Android.
+
+---
+
+## ✨ TÍNH NĂNG MỚI: HỖ TRỢ MOBILE
+
+### 📱 Giao Diện Responsive
+- ✅ **Tự động điều chỉnh** cho desktop, tablet, và mobile
+- ✅ **Bottom navigation bar** trên mobile
+- ✅ **Fullscreen modals** trên điện thoại
+- ✅ **Touch-friendly buttons** (min 44px)
+- ✅ **Compact formatting** cho số tiền trên mobile
+- ✅ **Safe area support** (iPhone notch, Android punch-hole)
+
+### 🚀 Build APK Android
+Có 3 cách để chạy trên điện thoại:
+1. **PWA (Progressive Web App)** - Nhanh nhất, không cần build
+2. **Ionic Capacitor** - Native app, performance tốt nhất
+3. **Apache Cordova** - Alternative cho Capacitor
+
+👉 **Xem hướng dẫn chi tiết**: `MOBILE_BUILD_GUIDE.md`  
+👉 **Quick start**: `QUICK_MOBILE_SETUP.md`
 
 ---
 

@@ -1,0 +1,10 @@
+{
+  "version": "1.0.3",
+  "buildTime": "2026-09-01T10:25:00Z",
+  "apiBaseUrl": "http://192.168.1.93:8080/api",
+  "changes": [
+    "Fixed API base URL to 192.168.1.93",
+    "Updated all components to use centralized API",
+    "Added connection test page"
+  ]
+}

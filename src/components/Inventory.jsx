@@ -5,6 +5,7 @@ import {
   Layers, CheckCircle2, Clock, FileText, ArrowRight, ShieldCheck
 } from 'lucide-react';
 import { formatVND, formatNumber, formatDate } from '../utils/formatters';
+import { api } from '../utils/api';
 
 export default function Inventory() {
   const [products, setProducts] = useState([]);
@@ -47,17 +48,12 @@ export default function Inventory() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [prodRes, supRes, bankRes, dailyRes] = await Promise.all([
-        fetch('/api/products').catch(() => null),
-        fetch('/api/suppliers').catch(() => null),
-        fetch('/api/bank-accounts').catch(() => null),
-        fetch(`/api/reports/daily-import?date=${dailyDate}`).catch(() => null)
+      const [prods, sups, banks, daily] = await Promise.all([
+        api.getProducts().catch(() => []),
+        api.getSuppliers().catch(() => []),
+        api.getBankAccounts().catch(() => []),
+        api.getDailyImport(dailyDate).catch(() => {})
       ]);
-
-      const prods = prodRes && prodRes.ok ? await prodRes.json() : [];
-      const sups = supRes && supRes.ok ? await supRes.json() : [];
-      const banks = bankRes && bankRes.ok ? await bankRes.json() : [];
-      const daily = dailyRes && dailyRes.ok ? await dailyRes.json() : {};
 
       const safeProds = Array.isArray(prods) ? prods : (prods?.data && Array.isArray(prods.data) ? prods.data : []);
       const safeSups = Array.isArray(sups) ? sups : (sups?.data && Array.isArray(sups.data) ? sups.data : []);
@@ -176,20 +172,10 @@ export default function Inventory() {
     };
 
     try {
-      const res = await fetch('/api/purchases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        alert("✅ Đã tạo phiếu nhập chuyến xe thành công! Kho đã được cộng thêm số lượng con.");
-        setShowImportModal(false);
-        fetchData();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert("Lỗi nhập hàng: " + (err.message || 'Không thể lưu phiếu nhập'));
-      }
+      await api.createPurchase(payload);
+      alert("✅ Đã tạo phiếu nhập chuyến xe thành công! Kho đã được cộng thêm số lượng con.");
+      setShowImportModal(false);
+      fetchData();
     } catch (e) {
       alert("Lỗi kết nối máy chủ: " + e.message);
     }
@@ -201,18 +187,12 @@ export default function Inventory() {
     if (isNaN(count) || count < 0) return;
 
     try {
-      const res = await fetch(`/api/products/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...product,
-          headCount: count,
-          soLuongCon: count
-        })
+      await api.updateProduct(product.id, {
+        ...product,
+        headCount: count,
+        soLuongCon: count
       });
-      if (res.ok) {
-        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, headCount: count, soLuongCon: count } : p));
-      }
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, headCount: count, soLuongCon: count } : p));
     } catch (e) {
       console.error(e);
     }

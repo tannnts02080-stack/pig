@@ -4,6 +4,7 @@ import {
   Search, RefreshCw, DollarSign, CreditCard, ShieldCheck, FileText, CheckCircle2 
 } from 'lucide-react';
 import { formatVND, formatDateTime, formatDate } from '../utils/formatters';
+import { api } from '../utils/api';
 
 const POPULAR_BANKS = [
   { code: 'MB', name: 'MB BANK (Quân Đội)' },
@@ -48,12 +49,10 @@ export default function BankAccounts() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [accRes, txRes] = await Promise.all([
-        fetch('/api/bank-accounts').catch(() => null),
-        fetch('/api/bank-transactions').catch(() => null)
+      const [accData, txData] = await Promise.all([
+        api.getBankAccounts().catch(() => []),
+        api.getBankTransactions().catch(() => [])
       ]);
-      const accData = accRes && accRes.ok ? await accRes.json() : [];
-      const txData = txRes && txRes.ok ? await txRes.json() : [];
 
       const safeAccs = Array.isArray(accData) ? accData : (accData?.data && Array.isArray(accData.data) ? accData.data : []);
       const safeTxs = Array.isArray(txData) ? txData : (txData?.data && Array.isArray(txData.data) ? txData.data : []);
@@ -126,25 +125,13 @@ export default function BankAccounts() {
 
     try {
       if (editingAccount) {
-        const res = await fetch(`/api/bank-accounts/${editingAccount.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          setShowModal(false);
-          fetchData();
-        }
+        await api.updateBankAccount(editingAccount.id, payload);
+        setShowModal(false);
+        fetchData();
       } else {
-        const res = await fetch('/api/bank-accounts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          setShowModal(false);
-          fetchData();
-        }
+        await api.createBankAccount(payload);
+        setShowModal(false);
+        fetchData();
       }
     } catch (err) {
       alert("Lỗi kết nối: " + err.message);
@@ -154,12 +141,8 @@ export default function BankAccounts() {
   const handleDeleteAccount = async (id, name) => {
     if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản ${name}?`)) return;
     try {
-      const res = await fetch(`/api/bank-accounts/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchData();
-      } else {
-        alert("Không thể xóa tài khoản đã có lịch sử giao dịch dòng tiền");
-      }
+      await api.deleteBankAccount(id);
+      fetchData();
     } catch (e) {
       alert("Lỗi xóa tài khoản: " + e.message);
     }
@@ -181,18 +164,10 @@ export default function BankAccounts() {
     };
 
     try {
-      const res = await fetch('/api/bank-transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        setShowTxModal(false);
-        setTxForm({ ...txForm, amount: '', reason: '' });
-        fetchData();
-      } else {
-        alert("Không thể tạo giao dịch");
-      }
+      await api.createBankTransaction(payload);
+      setShowTxModal(false);
+      setTxForm({ ...txForm, amount: '', reason: '' });
+      fetchData();
     } catch (e) {
       alert("Lỗi kết nối: " + e.message);
     }

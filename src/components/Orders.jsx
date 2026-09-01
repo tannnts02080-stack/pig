@@ -4,6 +4,7 @@ import {
   Trash2, Search, RefreshCw, CheckCircle2, AlertCircle, Building2, Truck, Eye
 } from 'lucide-react';
 import { formatVND, formatDateTime, formatDate } from '../utils/formatters';
+import { api } from '../utils/api';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -14,13 +15,8 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/orders').catch(() => null);
-      if (res && res.ok) {
-        const data = await res.json();
-        setOrders(Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : []));
-      } else {
-        setOrders([]);
-      }
+      const data = await api.getOrders();
+      setOrders(Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : []));
     } catch (e) {
       console.error("Lỗi tải đơn hàng:", e);
       setOrders([]);

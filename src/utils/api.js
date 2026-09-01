@@ -1,10 +1,17 @@
 // Frontend API client wrapper
 
-const API_BASE = '/api';
+const API_BASE = 'http://172.21.154.88:8080/api';
+
+// Log API base for debugging
+console.log('🔗 API_BASE:', API_BASE);
+console.log('📍 Window location:', window.location.href);
 
 async function fetchJSON(url, options = {}) {
+  const fullUrl = `${API_BASE}${url}`;
+  console.log('📡 API Request:', fullUrl, options);
+  
   try {
-    const res = await fetch(`${API_BASE}${url}`, {
+    const res = await fetch(fullUrl, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -12,14 +19,20 @@ async function fetchJSON(url, options = {}) {
       ...options,
     });
 
+    console.log('📥 API Response:', fullUrl, 'Status:', res.status);
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `Lỗi kết nối máy chủ (${res.status})` }));
+      console.error('❌ API Error:', fullUrl, err);
       throw new Error(err.error || 'Đã có lỗi xảy ra');
     }
 
-    return await res.json();
+    const data = await res.json();
+    console.log('✅ API Success:', fullUrl, 'Data length:', Array.isArray(data) ? data.length : 'N/A');
+    return data;
   } catch (error) {
-    console.error(`API Error on ${url}:`, error);
+    console.error(`❌ API Error on ${url}:`, error);
+    alert(`Lỗi kết nối:\n${error.message}\n\nAPI: ${fullUrl}`);
     throw error;
   }
 }
@@ -61,6 +74,15 @@ export const api = {
 
   // Reports
   getDashboardReports: () => fetchJSON('/reports/dashboard'),
+  getDailyImport: (date) => fetchJSON(`/reports/daily-import?date=${date}`),
+
+  // Bank Accounts
+  getBankAccounts: () => fetchJSON('/bank-accounts'),
+  createBankAccount: (data) => fetchJSON('/bank-accounts', { method: 'POST', body: JSON.stringify(data) }),
+  updateBankAccount: (id, data) => fetchJSON(`/bank-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBankAccount: (id) => fetchJSON(`/bank-accounts/${id}`, { method: 'DELETE' }),
+  getBankTransactions: () => fetchJSON('/bank-transactions'),
+  createBankTransaction: (data) => fetchJSON('/bank-transactions', { method: 'POST', body: JSON.stringify(data) }),
 
   // Settings & Backup
   getSettings: () => fetchJSON('/settings'),
