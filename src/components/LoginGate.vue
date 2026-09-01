@@ -41,7 +41,7 @@
             <input
               type="text"
               v-model="username"
-              placeholder="Nhập tên tài khoản (admin)"
+              placeholder="Nhập tên tài khoản quản trị..."
               autocomplete="username"
               class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
               required
@@ -57,7 +57,7 @@
             <input
               :type="showPassword ? 'text' : 'password'"
               v-model="password"
-              placeholder="Nhập mật khẩu (giadinh@)"
+              placeholder="Nhập mật khẩu bảo mật..."
               autocomplete="current-password"
               class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-10 pr-11 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
               required
@@ -65,7 +65,7 @@
             <button
               type="button"
               @click="showPassword = !showPassword"
-              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition cursor-pointer"
             >
               <Eye v-if="!showPassword" class="w-4 h-4" />
               <EyeOff v-else class="w-4 h-4" />
@@ -100,7 +100,7 @@ import { ShieldCheck, Lock, User, Eye, EyeOff, LogIn, AlertCircle } from 'lucide
 
 const emit = defineEmits(['authenticated']);
 
-const username = ref('admin');
+const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
 const errorMessage = ref('');

@@ -16,6 +16,18 @@
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-white min-h-screen">
     <div id="app"></div>
+    <script>
+      // CHỐNG XEM MÃ NGUỒN VÀ F12 CHO NGƯỜI DÙNG NGOÀI
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+            (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S'))) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
