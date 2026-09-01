@@ -2,6 +2,7 @@ package com.pig.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -14,24 +15,30 @@ public class NhaCungCap {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Nationalized
     @Column(name = "ma_nha_cung_cap", length = 50, nullable = false, unique = true)
     private String maNhaCungCap;
 
+    @Nationalized
     @Column(name = "ten_nha_cung_cap", length = 255, nullable = false)
     private String tenNhaCungCap;
 
+    @Nationalized
     @Column(name = "so_dien_thoai", length = 20)
     private String soDienThoai;
 
+    @Nationalized
     @Column(name = "dia_chi", length = 500)
     private String diaChi;
 
+    @Nationalized
     @Column(name = "nguoi_lien_he", length = 100)
     private String nguoiLienHe;
 
     @Column(name = "cong_no_phai_tra", precision = 18, scale = 2)
     private BigDecimal congNoPhaiTra = BigDecimal.ZERO;
 
+    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
@@ -72,8 +79,6 @@ public class NhaCungCap {
 
     public BigDecimal getCongNoPhaiTra() { return congNoPhaiTra; }
     public void setCongNoPhaiTra(BigDecimal congNoPhaiTra) { this.congNoPhaiTra = congNoPhaiTra; }
-    public BigDecimal getDebtToPay() { return congNoPhaiTra; }
-    public void setDebtToPay(BigDecimal debtToPay) { this.congNoPhaiTra = debtToPay; }
     public BigDecimal getDebt() { return congNoPhaiTra; }
     public void setDebt(BigDecimal debt) { this.congNoPhaiTra = debt; }
 
@@ -84,6 +89,4 @@ public class NhaCungCap {
 
     public LocalDateTime getNgayTao() { return ngayTao; }
     public void setNgayTao(LocalDateTime ngayTao) { this.ngayTao = ngayTao; }
-    public LocalDateTime getCreatedAt() { return ngayTao; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.ngayTao = createdAt; }
 }

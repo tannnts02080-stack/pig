@@ -246,6 +246,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         pn.setSoTienDaTra(soTienDaTra);
         pn.setCongNoConThieu(congNoConThieu);
         pn.setGhiChu(request.getGhiChu() != null ? request.getGhiChu() : request.getNotes());
+        pn.setHinhAnhChuyenXe(request.getHinhAnhChuyenXe() != null ? request.getHinhAnhChuyenXe() : (request.getImages() != null ? request.getImages() : request.getImportImages()));
 
         for (ChiTietPhieuNhap ct : danhSachChiTiet) {
             ct.setPhieuNhapKho(pn);
@@ -441,6 +442,9 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         pn.setCongNoConThieu(congNoConThieu);
         pn.setTaiKhoanNganHangTra(tkNganHang);
         pn.setGhiChu(request.getGhiChu() != null ? request.getGhiChu() : request.getNotes());
+        if (request.getHinhAnhChuyenXe() != null || request.getImages() != null || request.getImportImages() != null) {
+            pn.setHinhAnhChuyenXe(request.getHinhAnhChuyenXe() != null ? request.getHinhAnhChuyenXe() : (request.getImages() != null ? request.getImages() : request.getImportImages()));
+        }
         pn.getDanhSachChiTiet().addAll(danhSachChiTietMoi);
 
         PhieuNhapKho phieuDaLuu = phieuNhapKhoRepository.save(pn);

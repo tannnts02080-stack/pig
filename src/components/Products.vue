@@ -265,15 +265,51 @@
           </span>
         </div>
 
-        <!-- Image & Badges -->
-        <div class="relative h-48 w-full bg-slate-900 overflow-hidden">
+        <!-- Image & Carousel & Badges -->
+        <div class="relative h-48 w-full bg-slate-900 overflow-hidden group/img">
           <img
-            :src="card.image || defaultPigImage"
+            :src="getCardCurrentImage(card)"
             :alt="card.name"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
             @error="handleImgError"
+            @click.stop="openGallery(card)"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40 pointer-events-none"></div>
+
+          <!-- NÚT LƯỚT ẢNH TRÁI / PHẢI KHI CÓ NHIỀU ẢNH BÁN HÀNG -->
+          <div v-if="getCardImages(card).length > 1" class="absolute inset-y-0 inset-x-2 flex items-center justify-between pointer-events-none z-20">
+            <button
+              type="button"
+              @click.stop="prevCardImage(card)"
+              class="w-7 h-7 rounded-full bg-black/75 hover:bg-amber-600 text-white flex items-center justify-center text-sm font-black shadow-lg backdrop-blur-md pointer-events-auto transition active:scale-90 border border-white/20 cursor-pointer"
+              title="Ảnh trước"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              @click.stop="nextCardImage(card)"
+              class="w-7 h-7 rounded-full bg-black/75 hover:bg-amber-600 text-white flex items-center justify-center text-sm font-black shadow-lg backdrop-blur-md pointer-events-auto transition active:scale-90 border border-white/20 cursor-pointer"
+              title="Ảnh tiếp theo"
+            >
+              ›
+            </button>
+          </div>
+
+          <!-- CHẤM CHỈ SỐ ẢNH (DOTS) & ĐẾM ẢNH -->
+          <div v-if="getCardImages(card).length > 1" class="absolute bottom-2.5 left-3 z-20 flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">
+            <span
+              v-for="(_, dotIdx) in getCardImages(card)"
+              :key="dotIdx"
+              :class="[
+                'rounded-full transition-all',
+                (cardImageIndexes[card.id] || 0) === dotIdx ? 'bg-amber-400 w-3 h-1.5' : 'bg-white/40 w-1.5 h-1.5'
+              ]"
+            ></span>
+            <span class="text-[9px] font-bold text-amber-300 ml-0.5">
+              {{ (cardImageIndexes[card.id] || 0) + 1 }}/{{ getCardImages(card).length }}
+            </span>
+          </div>
 
           <!-- Badges -->
           <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
@@ -689,61 +725,95 @@
 
           </div>
 
-          <!-- CỘT PHẢI (5 COLS): HÌNH ẢNH SẢN PHẨM -->
+          <!-- CỘT PHẢI (5 COLS): THƯ VIỆN ẢNH ĐẸP BÁN HÀNG -->
           <div class="col-span-12 sm:col-span-5 space-y-3">
             
             <div class="flex items-center justify-between">
-              <label class="text-[11px] font-bold text-slate-300">
-                Hình Ảnh Sản Phẩm Đẩy Lên Kệ
+              <label class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                <Camera class="w-4 h-4 text-rose-400" />
+                <span>Thư Viện Ảnh Bán Hàng Đẹp</span>
               </label>
               <span class="text-[10px] text-slate-400 font-bold">
-                {{ form.image ? '✓ Đã có ảnh' : 'Chưa có ảnh' }}
+                {{ form.imageList?.length || (form.image ? 1 : 0) }} ảnh
               </span>
             </div>
 
-            <!-- Upload Box -->
-            <div class="border border-dashed border-slate-700 hover:border-amber-500 bg-slate-900/80 rounded-2xl p-3 flex flex-col items-center justify-center gap-2.5 text-center transition">
+            <!-- Upload Box & Gallery Manager -->
+            <div class="border border-slate-700 hover:border-amber-500 bg-slate-950 rounded-2xl p-3.5 space-y-3 transition">
               
-              <!-- Thumbnail nếu có ảnh -->
-              <div v-if="form.image" class="relative w-full h-44 rounded-xl overflow-hidden border border-slate-800 group shadow-md bg-slate-950">
-                <img :src="form.image" alt="Preview" class="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  @click="form.image = ''"
-                  class="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/80 hover:bg-rose-600 text-white text-xs font-bold transition cursor-pointer border border-white/20 shadow-lg"
-                  title="Xóa ảnh này"
-                >
-                  ✕ Xóa ảnh
-                </button>
+              <!-- Nút chọn thêm nhiều ảnh -->
+              <div class="flex flex-col gap-2">
+                <label class="flex items-center justify-center gap-2.5 w-full p-3 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 border border-slate-700 hover:border-amber-500 text-center cursor-pointer transition shadow-md">
+                  <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Upload class="w-3.5 h-3.5" />
+                  </div>
+                  <div class="text-left min-w-0">
+                    <span class="text-xs font-bold text-white block truncate">+ Tải Thêm Nhiều Ảnh Đẹp</span>
+                    <span class="text-[9px] text-slate-400 block truncate">Chọn 1 hoặc nhiều ảnh cùng lúc</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    class="hidden" 
+                    @change="handleMultipleBeautyUpload" 
+                  />
+                </label>
               </div>
 
-              <!-- Nút tải ảnh dạng upload icon -->
-              <label class="flex items-center justify-center gap-2.5 w-full p-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-center cursor-pointer transition">
-                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                  <Upload class="w-4 h-4" />
+              <!-- Lưới danh sách ảnh đẹp bán hàng -->
+              <div v-if="form.imageList && form.imageList.length > 0" class="space-y-2">
+                <div class="text-[10px] text-slate-400 font-bold uppercase flex items-center justify-between">
+                  <span>Ảnh Đã Chọn (Bấm ⭐ để làm ảnh chính):</span>
+                  <span class="text-amber-400">{{ form.imageList.length }} ảnh</span>
                 </div>
-                <div class="text-left min-w-0">
-                  <span class="text-xs font-bold text-white block truncate">Tải ảnh heo từ máy tính</span>
-                  <span class="text-[10px] text-slate-400 block truncate">Định dạng JPG, PNG, WebP</span>
+                
+                <div class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-900/60 rounded-xl border border-slate-800">
+                  <div 
+                    v-for="(imgUrl, imgIdx) in form.imageList" 
+                    :key="imgIdx"
+                    :class="[
+                      'relative group rounded-xl overflow-hidden aspect-square border transition cursor-pointer',
+                      form.image === imgUrl ? 'ring-2 ring-amber-400 border-amber-400' : 'border-slate-800 hover:border-slate-600'
+                    ]"
+                    @click="form.image = imgUrl"
+                  >
+                    <img :src="imgUrl" class="w-full h-full object-cover" />
+                    
+                    <!-- Badge ảnh đại diện chính -->
+                    <span 
+                      v-if="form.image === imgUrl"
+                      class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[8px] font-black shadow-md flex items-center gap-0.5"
+                    >
+                      ⭐ Chính
+                    </span>
+
+                    <!-- Nút xóa ảnh -->
+                    <button
+                      type="button"
+                      @click.stop="removeBeautyImage(imgIdx)"
+                      class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600/90 text-white flex items-center justify-center text-[10px] hover:bg-rose-500 shadow-md transition cursor-pointer"
+                      title="Xóa ảnh này"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  class="hidden" 
-                  @change="handleFileUpload" 
-                />
-              </label>
+              </div>
+
+              <div v-else class="text-center py-4 text-slate-500 text-xs italic">
+                Chưa có ảnh bán hàng nào. Bấm nút phía trên để thêm ảnh.
+              </div>
 
             </div>
 
-            <!-- Hướng dẫn lên kệ -->
-            <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl space-y-1">
-              <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px]">
-                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-[9px]">✓</span>
-                <span>Tự động xuất hiện tại Cửa Hàng POS</span>
+            <!-- Chú thích độc lập ảnh -->
+            <div class="bg-gradient-to-br from-amber-500/10 to-slate-900/90 border border-amber-500/30 p-3 rounded-2xl space-y-1">
+              <div class="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+                <span>💡 Lưu Ý Về Ảnh Bán Hàng:</span>
               </div>
-              <p class="text-[10px] text-slate-400 leading-relaxed">
-                Sau khi kê giá bán và lưu, sản phẩm sẽ sẵn sàng được bán ra tại Cửa Hàng POS.
+              <p class="text-[10px] text-slate-300 leading-relaxed">
+                Ảnh tại đây là <strong>Ảnh Đẹp Bán Hàng độc lập</strong> dùng để chào khách và xuất hiện tại quầy POS. Ảnh này hoàn toàn không trùng với ảnh chụp chứng cứ heo thực tế/heo xấu lúc lập phiếu nhập.
               </p>
             </div>
 
@@ -989,6 +1059,68 @@
         </div>
       </div>
     </div>
+    <!-- ========================================== -->
+    <!-- MODAL LIGHTBOX XEM THƯ VIỆN ẢNH FULLSCREEN -->
+    <!-- ========================================== -->
+    <div 
+      v-if="showGalleryModal" 
+      class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4"
+      @click.self="closeGallery"
+    >
+      <!-- Top bar -->
+      <div class="w-full max-w-4xl flex items-center justify-between py-2 text-white border-b border-white/10 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-black text-amber-400">📸 {{ activeGalleryProduct?.name || 'Ảnh Bán Hàng Sản Phẩm' }}</span>
+          <span class="px-2 py-0.5 rounded bg-white/10 text-xs text-slate-300">
+            {{ galleryIndex + 1 }} / {{ galleryImages.length }}
+          </span>
+        </div>
+        <button
+          @click="closeGallery"
+          class="p-2 px-3.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition text-xs font-black cursor-pointer"
+        >
+          ✕ Đóng
+        </button>
+      </div>
+
+      <!-- Main image with prev/next buttons -->
+      <div class="relative w-full max-w-4xl flex items-center justify-center h-[65vh] bg-black/40 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+        <img 
+          :src="galleryImages[galleryIndex]" 
+          class="max-w-full max-h-full object-contain select-none"
+        />
+
+        <button
+          v-if="galleryImages.length > 1"
+          @click="prevGalleryImage"
+          class="absolute left-4 w-12 h-12 rounded-full bg-black/70 hover:bg-amber-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ‹
+        </button>
+        <button
+          v-if="galleryImages.length > 1"
+          @click="nextGalleryImage"
+          class="absolute right-4 w-12 h-12 rounded-full bg-black/70 hover:bg-amber-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ›
+        </button>
+      </div>
+
+      <!-- Thumbnails strip -->
+      <div v-if="galleryImages.length > 1" class="w-full max-w-4xl flex items-center gap-2 overflow-x-auto py-3 justify-center">
+        <div 
+          v-for="(img, idx) in galleryImages" 
+          :key="idx"
+          @click="galleryIndex = idx"
+          :class="[
+            'w-14 h-14 rounded-xl overflow-hidden border-2 cursor-pointer transition shrink-0',
+            galleryIndex === idx ? 'border-amber-400 scale-105 ring-2 ring-amber-400/50' : 'border-white/20 opacity-60 hover:opacity-100'
+          ]"
+        >
+          <img :src="img" class="w-full h-full object-cover" />
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -1027,8 +1159,80 @@ const dragOverCardId = ref(null);
 const showMergePickerModal = ref(false);
 const mergingSourceCard = ref(null);
 
-watch([showModal, showQuoteModal, showMergePickerModal], ([isOpenModal, isOpenQuote, isOpenMerge]) => {
-  if (isOpenModal || isOpenQuote || isOpenMerge) {
+// GALLERY LIGHTBOX & MULTI-IMAGE CAROUSEL STATE
+const cardImageIndexes = ref({});
+const showGalleryModal = ref(false);
+const activeGalleryProduct = ref(null);
+const galleryImages = ref([]);
+const galleryIndex = ref(0);
+
+const getCardImages = (card) => {
+  if (!card) return [defaultPigImage];
+  if (card.imageList && Array.isArray(card.imageList) && card.imageList.length > 0) {
+    return card.imageList;
+  }
+  if (card.danhSachHinhAnh) {
+    try {
+      const parsed = JSON.parse(card.danhSachHinhAnh);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  if (card.images) {
+    try {
+      const parsed = JSON.parse(card.images);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  if (card.image || card.imageUrl || card.hinhAnh) {
+    return [card.image || card.imageUrl || card.hinhAnh];
+  }
+  return [defaultPigImage];
+};
+
+const getCardCurrentImage = (card) => {
+  const imgs = getCardImages(card);
+  const idx = cardImageIndexes.value[card.id] || 0;
+  return imgs[idx % imgs.length];
+};
+
+const nextCardImage = (card) => {
+  const imgs = getCardImages(card);
+  if (imgs.length <= 1) return;
+  const current = cardImageIndexes.value[card.id] || 0;
+  cardImageIndexes.value[card.id] = (current + 1) % imgs.length;
+};
+
+const prevCardImage = (card) => {
+  const imgs = getCardImages(card);
+  if (imgs.length <= 1) return;
+  const current = cardImageIndexes.value[card.id] || 0;
+  cardImageIndexes.value[card.id] = (current - 1 + imgs.length) % imgs.length;
+};
+
+const openGallery = (card) => {
+  activeGalleryProduct.value = card;
+  galleryImages.value = getCardImages(card);
+  galleryIndex.value = cardImageIndexes.value[card.id] || 0;
+  showGalleryModal.value = true;
+};
+
+const closeGallery = () => {
+  showGalleryModal.value = false;
+  activeGalleryProduct.value = null;
+};
+
+const nextGalleryImage = () => {
+  if (galleryImages.value.length <= 1) return;
+  galleryIndex.value = (galleryIndex.value + 1) % galleryImages.value.length;
+};
+
+const prevGalleryImage = () => {
+  if (galleryImages.value.length <= 1) return;
+  galleryIndex.value = (galleryIndex.value - 1 + galleryImages.value.length) % galleryImages.value.length;
+};
+
+watch([showModal, showQuoteModal, showMergePickerModal, showGalleryModal], ([isOpenModal, isOpenQuote, isOpenMerge, isOpenGal]) => {
+  if (isOpenModal || isOpenQuote || isOpenMerge || isOpenGal) {
     document.body.style.overflow = 'hidden';
   } else {
     document.body.style.overflow = '';
@@ -1042,6 +1246,7 @@ onUnmounted(() => {
 const form = ref({
   name: '',
   image: defaultPigImage,
+  imageList: [],
   porkType: 'hot',
   pigFeature: 'duoi_cut',
   sizeType: 'Heo sữa (3 - 3.9kg)',
@@ -1066,20 +1271,34 @@ const handlePriceInput = (event, field) => {
   form.value[field] = raw ? Number(raw) : 0;
 };
 
-const handleFileUpload = (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+const handleMultipleBeautyUpload = (event) => {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    showToast("Kích thước tệp ảnh tối đa là 5MB!", "warning");
-    return;
+  files.forEach(file => {
+    if (file.size > 8 * 1024 * 1024) {
+      showToast(`Ảnh ${file.name} vượt quá 8MB!`, "warning");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!form.value.imageList) form.value.imageList = [];
+      form.value.imageList.push(e.target.result);
+      if (!form.value.image) {
+        form.value.image = e.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+const removeBeautyImage = (idx) => {
+  if (!form.value.imageList) return;
+  const removed = form.value.imageList.splice(idx, 1)[0];
+  if (form.value.image === removed) {
+    form.value.image = form.value.imageList[0] || defaultPigImage;
   }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    form.value.image = e.target.result;
-  };
-  reader.readAsDataURL(file);
 };
 
 const defaultSizes = ref([
@@ -1525,12 +1744,14 @@ const handleUnmerge = async (card) => {
 
 // Mở modal sửa giá
 const handleOpenEditCard = (card) => {
+  const images = getCardImages(card);
   if (card.isMerged) {
     editingGroup.value = card;
     editingProduct.value = card.items[0];
     form.value = {
       name: card.name,
-      image: card.image || defaultPigImage,
+      image: card.image || images[0] || defaultPigImage,
+      imageList: [...images],
       porkType: card.porkType,
       pigFeature: card.pigFeature,
       sizeType: card.sizeType,
@@ -1547,7 +1768,8 @@ const handleOpenEditCard = (card) => {
     editingProduct.value = card.items[0];
     form.value = {
       name: card.name,
-      image: card.image || defaultPigImage,
+      image: card.image || images[0] || defaultPigImage,
+      imageList: [...images],
       porkType: card.porkType,
       pigFeature: card.pigFeature,
       sizeType: card.sizeType,
@@ -1607,6 +1829,7 @@ const handleOpenAdd = () => {
   form.value = {
     name: '',
     image: defaultPigImage,
+    imageList: [],
     porkType: 'hot',
     pigFeature: 'duoi_cut',
     sizeType: 'Heo sữa (3 - 3.9kg)',
@@ -1627,6 +1850,9 @@ const handleSaveProduct = async () => {
     return;
   }
 
+  const primaryImage = form.value.image || (form.value.imageList?.[0] || defaultPigImage);
+  const imagesJson = JSON.stringify(form.value.imageList && form.value.imageList.length > 0 ? form.value.imageList : [primaryImage]);
+
   try {
     if (editingGroup.value) {
       // Cập nhật đồng bộ cho tất cả sản phẩm trong nhóm gộp
@@ -1636,9 +1862,11 @@ const handleSaveProduct = async () => {
           tenSanPham: form.value.name,
           productCode: item.productCode || item.maSanPham,
           maSanPham: item.productCode || item.maSanPham,
-          image: form.value.image,
-          imageUrl: form.value.image,
-          hinhAnh: form.value.image,
+          image: primaryImage,
+          imageUrl: primaryImage,
+          hinhAnh: primaryImage,
+          danhSachHinhAnh: imagesJson,
+          images: imagesJson,
           porkType: item.porkType || item.loaiHeo || form.value.porkType,
           loaiHeo: item.porkType || item.loaiHeo || form.value.porkType,
           pigFeature: item.pigFeature || item.dacDiemHeo || form.value.pigFeature,
@@ -1681,9 +1909,11 @@ const handleSaveProduct = async () => {
       tenSanPham: form.value.name,
       productCode: editingProduct.value ? (editingProduct.value.productCode || editingProduct.value.maSanPham) : `HEO-${Date.now().toString().slice(-4)}`,
       maSanPham: editingProduct.value ? (editingProduct.value.productCode || editingProduct.value.maSanPham) : `HEO-${Date.now().toString().slice(-4)}`,
-      image: form.value.image,
-      imageUrl: form.value.image,
-      hinhAnh: form.value.image,
+      image: primaryImage,
+      imageUrl: primaryImage,
+      hinhAnh: primaryImage,
+      danhSachHinhAnh: imagesJson,
+      images: imagesJson,
       porkType: form.value.porkType,
       loaiHeo: form.value.porkType,
       pigFeature: form.value.pigFeature,

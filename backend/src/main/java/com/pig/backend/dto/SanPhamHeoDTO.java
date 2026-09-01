@@ -8,6 +8,7 @@ public class SanPhamHeoDTO {
     private String maSanPham;
     private String tenSanPham;
     private String hinhAnh;
+    private String danhSachHinhAnh;
     private Long nhaCungCapId;
     private String tenNhaCungCap;
     private String loaiHeo;
@@ -47,6 +48,13 @@ public class SanPhamHeoDTO {
     public void setImageUrl(String imageUrl) { this.hinhAnh = imageUrl; }
     public String getImage() { return hinhAnh; }
     public void setImage(String image) { this.hinhAnh = image; }
+
+    public String getDanhSachHinhAnh() { return danhSachHinhAnh; }
+    public void setDanhSachHinhAnh(String danhSachHinhAnh) { this.danhSachHinhAnh = danhSachHinhAnh; }
+    public String getImageList() { return danhSachHinhAnh; }
+    public void setImageList(String imageList) { this.danhSachHinhAnh = imageList; }
+    public String getImages() { return danhSachHinhAnh; }
+    public void setImages(String images) { this.danhSachHinhAnh = images; }
 
     public Long getNhaCungCapId() { return nhaCungCapId; }
     public void setNhaCungCapId(Long nhaCungCapId) { this.nhaCungCapId = nhaCungCapId; }

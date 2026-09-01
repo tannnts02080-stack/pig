@@ -15,9 +15,17 @@ public class TaoPhieuNhapRequest {
     private BigDecimal soTienThanhToan;
     private Long taiKhoanNganHangId;
     private String ghiChu;
+    private String hinhAnhChuyenXe; // Ảnh thực tế heo nhập chuyến xe
     private List<ChiTietMonNhapRequest> danhSachChiTiet;
 
     public TaoPhieuNhapRequest() {}
+
+    public String getHinhAnhChuyenXe() { return hinhAnhChuyenXe; }
+    public void setHinhAnhChuyenXe(String hinhAnhChuyenXe) { this.hinhAnhChuyenXe = hinhAnhChuyenXe; }
+    public String getImages() { return hinhAnhChuyenXe; }
+    public void setImages(String images) { this.hinhAnhChuyenXe = images; }
+    public String getImportImages() { return hinhAnhChuyenXe; }
+    public void setImportImages(String importImages) { this.hinhAnhChuyenXe = importImages; }
 
     public Long getNhaCungCapId() { return nhaCungCapId; }
     public void setNhaCungCapId(Long nhaCungCapId) { this.nhaCungCapId = nhaCungCapId; }

@@ -172,14 +172,50 @@
           ]"
         >
           <!-- Product Image Section -->
-          <div class="relative h-48 w-full bg-slate-900 overflow-hidden">
+          <div class="relative h-48 w-full bg-slate-900 overflow-hidden group/img">
             <img
-              :src="card.image || defaultPigImage"
+              :src="getCardCurrentImage(card)"
               :alt="card.name"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
               @error="handleImgError"
+              @click.stop="openGallery(card)"
             />
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40 pointer-events-none"></div>
+
+            <!-- Nút lướt ảnh trái / phải khi có nhiều ảnh đẹp -->
+            <div v-if="getCardImages(card).length > 1" class="absolute inset-y-0 inset-x-2 flex items-center justify-between pointer-events-none z-20">
+              <button
+                type="button"
+                @click.stop="prevCardImage(card)"
+                class="w-7 h-7 rounded-full bg-black/75 hover:bg-amber-600 text-white flex items-center justify-center text-sm font-black shadow-lg backdrop-blur-md pointer-events-auto transition active:scale-90 border border-white/20 cursor-pointer"
+                title="Ảnh trước"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                @click.stop="nextCardImage(card)"
+                class="w-7 h-7 rounded-full bg-black/75 hover:bg-amber-600 text-white flex items-center justify-center text-sm font-black shadow-lg backdrop-blur-md pointer-events-auto transition active:scale-90 border border-white/20 cursor-pointer"
+                title="Ảnh tiếp theo"
+              >
+                ›
+              </button>
+            </div>
+
+            <!-- Chấm chỉ số ảnh (Dots) -->
+            <div v-if="getCardImages(card).length > 1" class="absolute bottom-2.5 left-3 z-20 flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">
+              <span
+                v-for="(_, dotIdx) in getCardImages(card)"
+                :key="dotIdx"
+                :class="[
+                  'rounded-full transition-all',
+                  (cardImageIndexes[card.id] || 0) === dotIdx ? 'bg-amber-400 w-3 h-1.5' : 'bg-white/40 w-1.5 h-1.5'
+                ]"
+              ></span>
+              <span class="text-[9px] font-bold text-amber-300 ml-0.5">
+                {{ (cardImageIndexes[card.id] || 0) + 1 }}/{{ getCardImages(card).length }}
+              </span>
+            </div>
 
             <!-- Badges -->
             <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
@@ -904,6 +940,66 @@
         </button>
       </div>
     </div>
+    <!-- ========================================== -->
+    <!-- MODAL LIGHTBOX XEM ẢNH ĐẸP BÁN HÀNG TẠI POS -->
+    <!-- ========================================== -->
+    <div 
+      v-if="showGalleryModal" 
+      class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4"
+      @click.self="closeGallery"
+    >
+      <div class="w-full max-w-4xl flex items-center justify-between py-2 text-white border-b border-white/10 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-black text-amber-400">📸 {{ activeGalleryProduct?.name || 'Ảnh Bán Hàng' }}</span>
+          <span class="px-2 py-0.5 rounded bg-white/10 text-xs text-slate-300">
+            {{ galleryIndex + 1 }} / {{ galleryImages.length }}
+          </span>
+        </div>
+        <button
+          @click="closeGallery"
+          class="p-2 px-3.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition text-xs font-black cursor-pointer"
+        >
+          ✕ Đóng
+        </button>
+      </div>
+
+      <div class="relative w-full max-w-4xl flex items-center justify-center h-[65vh] bg-black/40 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+        <img 
+          :src="galleryImages[galleryIndex]" 
+          class="max-w-full max-h-full object-contain select-none"
+        />
+
+        <button
+          v-if="galleryImages.length > 1"
+          @click="prevGalleryImage"
+          class="absolute left-4 w-12 h-12 rounded-full bg-black/70 hover:bg-amber-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ‹
+        </button>
+        <button
+          v-if="galleryImages.length > 1"
+          @click="nextGalleryImage"
+          class="absolute right-4 w-12 h-12 rounded-full bg-black/70 hover:bg-amber-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ›
+        </button>
+      </div>
+
+      <div v-if="galleryImages.length > 1" class="w-full max-w-4xl flex items-center gap-2 overflow-x-auto py-3 justify-center">
+        <div 
+          v-for="(img, idx) in galleryImages" 
+          :key="idx"
+          @click="galleryIndex = idx"
+          :class="[
+            'w-14 h-14 rounded-xl overflow-hidden border-2 cursor-pointer transition shrink-0',
+            galleryIndex === idx ? 'border-amber-400 scale-105 ring-2 ring-amber-400/50' : 'border-white/20 opacity-60 hover:opacity-100'
+          ]"
+        >
+          <img :src="img" class="w-full h-full object-cover" />
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -937,6 +1033,78 @@ const isSubmittingOrder = ref(false);
 
 // GIỎ HÀNG (MULTI-ITEM CART)
 const cart = ref([]);
+
+// GALLERY LIGHTBOX & MULTI-IMAGE CAROUSEL STATE
+const cardImageIndexes = ref({});
+const showGalleryModal = ref(false);
+const activeGalleryProduct = ref(null);
+const galleryImages = ref([]);
+const galleryIndex = ref(0);
+
+const getCardImages = (card) => {
+  if (!card) return [defaultPigImage];
+  if (card.imageList && Array.isArray(card.imageList) && card.imageList.length > 0) {
+    return card.imageList;
+  }
+  if (card.danhSachHinhAnh) {
+    try {
+      const parsed = JSON.parse(card.danhSachHinhAnh);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  if (card.images) {
+    try {
+      const parsed = JSON.parse(card.images);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  if (card.image || card.imageUrl || card.hinhAnh) {
+    return [card.image || card.imageUrl || card.hinhAnh];
+  }
+  return [defaultPigImage];
+};
+
+const getCardCurrentImage = (card) => {
+  const imgs = getCardImages(card);
+  const idx = cardImageIndexes.value[card.id] || 0;
+  return imgs[idx % imgs.length];
+};
+
+const nextCardImage = (card) => {
+  const imgs = getCardImages(card);
+  if (imgs.length <= 1) return;
+  const current = cardImageIndexes.value[card.id] || 0;
+  cardImageIndexes.value[card.id] = (current + 1) % imgs.length;
+};
+
+const prevCardImage = (card) => {
+  const imgs = getCardImages(card);
+  if (imgs.length <= 1) return;
+  const current = cardImageIndexes.value[card.id] || 0;
+  cardImageIndexes.value[card.id] = (current - 1 + imgs.length) % imgs.length;
+};
+
+const openGallery = (card) => {
+  activeGalleryProduct.value = card;
+  galleryImages.value = getCardImages(card);
+  galleryIndex.value = cardImageIndexes.value[card.id] || 0;
+  showGalleryModal.value = true;
+};
+
+const closeGallery = () => {
+  showGalleryModal.value = false;
+  activeGalleryProduct.value = null;
+};
+
+const nextGalleryImage = () => {
+  if (galleryImages.value.length <= 1) return;
+  galleryIndex.value = (galleryIndex.value + 1) % galleryImages.value.length;
+};
+
+const prevGalleryImage = () => {
+  if (galleryImages.value.length <= 1) return;
+  galleryIndex.value = (galleryIndex.value - 1 + galleryImages.value.length) % galleryImages.value.length;
+};
 
 // MODAL CHỌN NHÀ CUNG CẤP
 const showSupplierPicker = ref(false);

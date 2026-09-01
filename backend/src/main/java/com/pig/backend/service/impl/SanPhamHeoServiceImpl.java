@@ -60,6 +60,7 @@ public class SanPhamHeoServiceImpl implements SanPhamHeoService {
         sp.setMaSanPham(dto.getMaSanPham() != null ? dto.getMaSanPham() : "HEO-" + System.currentTimeMillis());
         sp.setTenSanPham(dto.getTenSanPham());
         sp.setHinhAnh(dto.getHinhAnh());
+        sp.setDanhSachHinhAnh(dto.getDanhSachHinhAnh() != null ? dto.getDanhSachHinhAnh() : (dto.getImages() != null ? dto.getImages() : null));
         sp.setLoaiHeo(dto.getLoaiHeo() != null ? dto.getLoaiHeo() : "hot");
         sp.setDacDiemHeo(dto.getDacDiemHeo() != null ? dto.getDacDiemHeo() : (dto.getPigFeature() != null ? dto.getPigFeature() : "duoi_cut"));
         sp.setLoaiSize(dto.getLoaiSize());
@@ -176,6 +177,7 @@ public class SanPhamHeoServiceImpl implements SanPhamHeoService {
 
         if (dto.getTenSanPham() != null) sp.setTenSanPham(dto.getTenSanPham());
         if (dto.getHinhAnh() != null) sp.setHinhAnh(dto.getHinhAnh());
+        if (dto.getDanhSachHinhAnh() != null) sp.setDanhSachHinhAnh(dto.getDanhSachHinhAnh());
         if (dto.getLoaiHeo() != null) sp.setLoaiHeo(dto.getLoaiHeo());
         if (dto.getDacDiemHeo() != null) sp.setDacDiemHeo(dto.getDacDiemHeo());
         else if (dto.getPigFeature() != null) sp.setDacDiemHeo(dto.getPigFeature());

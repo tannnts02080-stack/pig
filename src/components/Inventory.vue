@@ -613,6 +613,32 @@
                 <span class="text-slate-300 italic">{{ pn.ghiChu || pn.notes || 'Không ghi chú' }}</span>
               </div>
             </div>
+            <!-- Ảnh thực tế chuyến xe (nếu có) -->
+            <div v-if="getPurchaseImages(pn).length > 0" class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900/60 rounded-xl border border-slate-800/80">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="openPurchaseGallery(pn)"
+                  class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Camera class="w-3.5 h-3.5" />
+                  <span>📸 Xem {{ getPurchaseImages(pn).length }} ảnh thực tế chuyến xe</span>
+                </button>
+                <span class="text-[11px] text-slate-400">Ảnh heo mới về, heo xấu đối chiếu</span>
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                <img
+                  v-for="(pImg, pIdx) in getPurchaseImages(pn).slice(0, 5)"
+                  :key="pIdx"
+                  :src="pImg"
+                  @click="openPurchaseGallery(pn, pIdx)"
+                  class="w-9 h-9 rounded-lg object-cover border border-slate-700 cursor-pointer hover:scale-105 transition shrink-0"
+                />
+                <span v-if="getPurchaseImages(pn).length > 5" class="text-[10px] text-slate-400 font-bold px-1.5 py-0.5 rounded bg-slate-800">
+                  +{{ getPurchaseImages(pn).length - 5 }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1048,6 +1074,48 @@
               </div>
               <div class="text-slate-300">
                 Tài khoản NCC sẽ được trừ: <strong>{{ formatVND(totalProductCost) }} (tiền heo) + {{ formatVND((Number(importForm.shippingFee) || 0) + (Number(importForm.parkingFee) || 0)) }} (tiền xe bãi) = {{ formatVND(totalTripCost) }}</strong>. Giá vốn nhập heo của bạn vẫn giữ nguyên là <strong>~{{ formatVND(unitCostAllocated) }}/con</strong>.
+              </div>
+            </div>
+          </div>
+
+          <!-- ẢNH THỰC TẾ CHUYẾN XE (HEO MỚI VỀ, HEO XẤU, HEO LỖI) -->
+          <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                <Camera class="w-4 h-4 text-cyan-400" />
+                <span>Ảnh Thực Tế Chuyến Xe (Hàng mới về, heo xấu/lỗi để đối chiếu)</span>
+              </label>
+              <span class="text-[10px] text-slate-400 font-bold">
+                {{ importForm.images?.length || 0 }} ảnh thực tế
+              </span>
+            </div>
+
+            <div class="space-y-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shadow-sm">
+                  <Upload class="w-4 h-4" />
+                  <span>+ Chụp / Chọn Ảnh Heo Thực Tế</span>
+                  <input type="file" multiple accept="image/*" class="hidden" @change="handleUploadImportImages" />
+                </label>
+                <span class="text-[11px] text-slate-500">Chụp ảnh heo thực tế, heo sẹo, gãy đuôi để làm chứng cứ lưu trữ với nhà xe & trại</span>
+              </div>
+
+              <!-- Thumbnails Preview Grid -->
+              <div v-if="importForm.images && importForm.images.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                <div v-for="(img, imgIdx) in importForm.images" :key="imgIdx" class="relative group rounded-xl overflow-hidden aspect-square border border-slate-800 bg-slate-900">
+                  <img :src="img" class="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    @click="importForm.images.splice(imgIdx, 1)"
+                    class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600/90 text-white flex items-center justify-center text-xs hover:bg-rose-500 shadow-md transition cursor-pointer"
+                    title="Xóa ảnh này"
+                  >
+                    ✕
+                  </button>
+                  <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-amber-300">
+                    #{{ imgIdx + 1 }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1515,6 +1583,47 @@
               </div>
             </div>
           </div>
+          <!-- ẢNH THỰC TẾ CHUYẾN XE (HEO MỚI VỀ, HEO XẤU, HEO LỖI) -->
+          <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                <Camera class="w-4 h-4 text-cyan-400" />
+                <span>Ảnh Thực Tế Chuyến Xe (Hàng mới về, heo xấu/lỗi để đối chiếu)</span>
+              </label>
+              <span class="text-[10px] text-slate-400 font-bold">
+                {{ editForm.images?.length || 0 }} ảnh thực tế
+              </span>
+            </div>
+
+            <div class="space-y-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shadow-sm">
+                  <Upload class="w-4 h-4" />
+                  <span>+ Chụp / Chọn Thêm Ảnh Heo Thực Tế</span>
+                  <input type="file" multiple accept="image/*" class="hidden" @change="handleUploadEditImages" />
+                </label>
+                <span class="text-[11px] text-slate-500">Lưu trữ hình ảnh heo lỗi, tật, đối chiếu với trại và nhà xe</span>
+              </div>
+
+              <!-- Thumbnails Preview Grid -->
+              <div v-if="editForm.images && editForm.images.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                <div v-for="(img, imgIdx) in editForm.images" :key="imgIdx" class="relative group rounded-xl overflow-hidden aspect-square border border-slate-800 bg-slate-900">
+                  <img :src="img" class="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    @click="editForm.images.splice(imgIdx, 1)"
+                    class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600/90 text-white flex items-center justify-center text-xs hover:bg-rose-500 shadow-md transition cursor-pointer"
+                    title="Xóa ảnh này"
+                  >
+                    ✕
+                  </button>
+                  <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-amber-300">
+                    #{{ imgIdx + 1 }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1">Ghi Chú Chuyến Xe</label>
@@ -1544,6 +1653,66 @@
         </form>
       </div>
     </div>
+    <!-- ========================================== -->
+    <!-- MODAL LIGHTBOX XEM ẢNH THỰC TẾ CHUYẾN XE -->
+    <!-- ========================================== -->
+    <div 
+      v-if="showPurchaseGalleryModal" 
+      class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4"
+      @click.self="closePurchaseGallery"
+    >
+      <div class="w-full max-w-4xl flex items-center justify-between py-2 text-white border-b border-white/10 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-black text-cyan-400">📸 {{ activePurchase?.maPhieuNhap || 'Ảnh Thực Tế Chuyến Xe' }}</span>
+          <span class="px-2 py-0.5 rounded bg-white/10 text-xs text-slate-300">
+            {{ purchaseGalleryIndex + 1 }} / {{ purchaseGalleryImages.length }}
+          </span>
+        </div>
+        <button
+          @click="closePurchaseGallery"
+          class="p-2 px-3.5 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition text-xs font-black cursor-pointer"
+        >
+          ✕ Đóng
+        </button>
+      </div>
+
+      <div class="relative w-full max-w-4xl flex items-center justify-center h-[65vh] bg-black/40 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+        <img 
+          :src="purchaseGalleryImages[purchaseGalleryIndex]" 
+          class="max-w-full max-h-full object-contain select-none"
+        />
+
+        <button
+          v-if="purchaseGalleryImages.length > 1"
+          @click="prevPurchaseGalleryImage"
+          class="absolute left-4 w-12 h-12 rounded-full bg-black/70 hover:bg-cyan-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ‹
+        </button>
+        <button
+          v-if="purchaseGalleryImages.length > 1"
+          @click="nextPurchaseGalleryImage"
+          class="absolute right-4 w-12 h-12 rounded-full bg-black/70 hover:bg-cyan-600 text-white flex items-center justify-center text-2xl font-black transition border border-white/20 cursor-pointer shadow-lg active:scale-90"
+        >
+          ›
+        </button>
+      </div>
+
+      <div v-if="purchaseGalleryImages.length > 1" class="w-full max-w-4xl flex items-center gap-2 overflow-x-auto py-3 justify-center">
+        <div 
+          v-for="(img, idx) in purchaseGalleryImages" 
+          :key="idx"
+          @click="purchaseGalleryIndex = idx"
+          :class="[
+            'w-14 h-14 rounded-xl overflow-hidden border-2 cursor-pointer transition shrink-0',
+            purchaseGalleryIndex === idx ? 'border-cyan-400 scale-105 ring-2 ring-cyan-400/50' : 'border-white/20 opacity-60 hover:opacity-100'
+          ]"
+        >
+          <img :src="img" class="w-full h-full object-cover" />
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -1551,7 +1720,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { 
   Package, Plus, Trash2, Truck, Flame, Snowflake, 
-  Search, RefreshCw, Building2, Edit2, Scale
+  Search, RefreshCw, Building2, Edit2, Scale, Upload, Camera
 } from 'lucide-vue-next';
 import { formatVND, formatNumber, formatDate } from '../utils/formatters';
 import { showConfirm, showAlert, showToast } from '../utils/dialog';
@@ -1580,6 +1749,89 @@ const purchaseSupplierId = ref('ALL');
 const purchasePreserve = ref('ALL');
 const purchaseFeature = ref('ALL');
 
+// LIGHTBOX XEM ẢNH THỰC TẾ CHUYẾN XE
+const showPurchaseGalleryModal = ref(false);
+const activePurchase = ref(null);
+const purchaseGalleryImages = ref([]);
+const purchaseGalleryIndex = ref(0);
+
+const getPurchaseImages = (pn) => {
+  if (!pn) return [];
+  if (pn.images) {
+    try {
+      const parsed = typeof pn.images === 'string' ? JSON.parse(pn.images) : pn.images;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  if (pn.hinhAnhChuyenXe) {
+    try {
+      const parsed = typeof pn.hinhAnhChuyenXe === 'string' ? JSON.parse(pn.hinhAnhChuyenXe) : pn.hinhAnhChuyenXe;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  return [];
+};
+
+const openPurchaseGallery = (pn, initialIdx = 0) => {
+  const imgs = getPurchaseImages(pn);
+  if (imgs.length === 0) return;
+  activePurchase.value = pn;
+  purchaseGalleryImages.value = imgs;
+  purchaseGalleryIndex.value = initialIdx;
+  showPurchaseGalleryModal.value = true;
+};
+
+const closePurchaseGallery = () => {
+  showPurchaseGalleryModal.value = false;
+  activePurchase.value = null;
+};
+
+const nextPurchaseGalleryImage = () => {
+  if (purchaseGalleryImages.value.length <= 1) return;
+  purchaseGalleryIndex.value = (purchaseGalleryIndex.value + 1) % purchaseGalleryImages.value.length;
+};
+
+const prevPurchaseGalleryImage = () => {
+  if (purchaseGalleryImages.value.length <= 1) return;
+  purchaseGalleryIndex.value = (purchaseGalleryIndex.value - 1 + purchaseGalleryImages.value.length) % purchaseGalleryImages.value.length;
+};
+
+const handleUploadImportImages = (event) => {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    if (file.size > 8 * 1024 * 1024) {
+      showToast(`Ảnh ${file.name} vượt quá 8MB!`, 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!importForm.value.images) importForm.value.images = [];
+      importForm.value.images.push(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+const handleUploadEditImages = (event) => {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    if (file.size > 8 * 1024 * 1024) {
+      showToast(`Ảnh ${file.name} vượt quá 8MB!`, 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!editForm.value.images) editForm.value.images = [];
+      editForm.value.images.push(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 const resetImportForm = () => {
   importForm.value = {
     supplierId: '',
@@ -1592,6 +1844,7 @@ const resetImportForm = () => {
     paymentMethod: 'Cash',
     bankAccountId: '',
     notes: '',
+    images: [],
     items: [
       {
         entryType: 'per_size',
@@ -1634,6 +1887,7 @@ const importForm = ref({
   paymentMethod: 'Cash',
   bankAccountId: '',
   notes: '',
+  images: [],
   items: [
     {
       entryType: 'per_size',
@@ -1973,6 +2227,9 @@ const handleSaveImport = async () => {
     taiKhoanNganHangId: importForm.value.bankAccountId ? Number(importForm.value.bankAccountId) : null,
     paidAmount: totalTripCost.value,
     notes: importForm.value.notes,
+    ghiChu: importForm.value.notes,
+    hinhAnhChuyenXe: JSON.stringify(importForm.value.images || []),
+    images: JSON.stringify(importForm.value.images || []),
     items: importForm.value.items.map(it => {
       const actualId = String(it.productId).split('_')[0];
       const isKg = it.entryType === 'per_kg' || it.unit === 'Kg';
@@ -2158,6 +2415,7 @@ const handleOpenEditPurchase = (pn) => {
     bankAccountId: pn.taiKhoanNganHangTra?.id || supplierBankAccounts.value[0]?.id || bankAccounts.value[0]?.id || '',
     shippingPayer: pn.nguoiChiuTienXe || pn.shippingPayer || 'supplier',
     notes: pn.ghiChu || pn.notes || 'Chỉnh sửa chuyến xe heo',
+    images: getPurchaseImages(pn),
     items: items
   };
 
@@ -2229,6 +2487,8 @@ const handleSaveEditProduct = async () => {
     taiKhoanNganHangId: editForm.value.paymentMethod === 'Bank' ? Number(editForm.value.bankAccountId) : null,
     notes: editForm.value.notes,
     ghiChu: editForm.value.notes,
+    hinhAnhChuyenXe: JSON.stringify(editForm.value.images || []),
+    images: JSON.stringify(editForm.value.images || []),
     items: editForm.value.items.map(it => {
       const matchSize = flattenedSizes.value.find(s => String(s.id) === String(it.productId));
       const sName = matchSize ? matchSize.name : (it.sizeType || 'Heo size');

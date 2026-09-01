@@ -2,6 +2,7 @@ package com.pig.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -14,18 +15,22 @@ public class KhachHang {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Nationalized
     @Column(name = "ten_khach_hang", length = 255, nullable = false)
     private String tenKhachHang;
 
+    @Nationalized
     @Column(name = "so_dien_thoai", length = 20)
     private String soDienThoai;
 
+    @Nationalized
     @Column(name = "dia_chi", length = 500)
     private String diaChi;
 
     @Column(name = "cong_no_hien_tai", precision = 18, scale = 2)
     private BigDecimal congNoHienTai = BigDecimal.ZERO;
 
+    @Nationalized
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
@@ -66,6 +71,4 @@ public class KhachHang {
 
     public LocalDateTime getNgayTao() { return ngayTao; }
     public void setNgayTao(LocalDateTime ngayTao) { this.ngayTao = ngayTao; }
-    public LocalDateTime getCreatedAt() { return ngayTao; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.ngayTao = createdAt; }
 }
