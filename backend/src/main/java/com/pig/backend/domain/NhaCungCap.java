@@ -16,7 +16,7 @@ public class NhaCungCap {
     private Long id;
 
     @Nationalized
-    @Column(name = "ma_nha_cung_cap", length = 50, nullable = false, unique = true)
+    @Column(name = "ma_nha_cung_cap", length = 50, nullable = false)
     private String maNhaCungCap;
 
     @Nationalized

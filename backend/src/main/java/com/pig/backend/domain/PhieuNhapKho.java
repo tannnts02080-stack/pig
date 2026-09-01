@@ -19,7 +19,7 @@ public class PhieuNhapKho {
     private Long id;
 
     @Nationalized
-    @Column(name = "ma_phieu_nhap", length = 50, nullable = false, unique = true)
+    @Column(name = "ma_phieu_nhap", length = 50, nullable = false)
     private String maPhieuNhap;
 
     @ManyToOne(fetch = FetchType.EAGER)

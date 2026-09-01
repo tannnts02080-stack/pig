@@ -18,7 +18,7 @@ public class DonHang {
     private Long id;
 
     @Nationalized
-    @Column(name = "ma_don_hang", length = 50, nullable = false, unique = true)
+    @Column(name = "ma_don_hang", length = 50, nullable = false)
     private String maDonHang;
 
     @Column(name = "ngay_dat_hang", nullable = false)
