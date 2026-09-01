@@ -37,11 +37,11 @@
 
     <button
       @click="emitTab('connect')"
-      class="px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs flex items-center gap-1 font-bold"
-      title="Cài đặt App Android APK"
+      class="px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs flex items-center gap-1.5 font-bold hover:bg-cyan-500/20 active:scale-95 transition cursor-pointer"
+      title="Tải App Android APK"
     >
-      <Smartphone class="w-3.5 h-3.5" />
-      <span>APK</span>
+      <Download class="w-3.5 h-3.5 text-cyan-400" />
+      <span>Tải APK</span>
     </button>
   </div>
 
@@ -79,6 +79,7 @@ import {
   BarChart3, 
   Users, 
   Smartphone, 
+  Download,
   Settings,
   Ruler,
   LayoutDashboard
