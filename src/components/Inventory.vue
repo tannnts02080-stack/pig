@@ -211,9 +211,10 @@
               <td class="py-4 px-5">
                 <div class="flex items-center gap-3">
                   <img
-                    :src="p.image || p.imageUrl || p.hinhAnh || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300'"
+                    :src="getProductDisplayImage(p)"
                     alt=""
-                    class="w-12 h-12 rounded-xl object-cover border border-slate-700/60 shadow-md shrink-0"
+                    class="w-12 h-12 rounded-xl object-cover border border-slate-700/60 shadow-md shrink-0 cursor-pointer hover:opacity-80 transition"
+                    @click="handleOpenEditProduct(p)"
                     @error="handleImgError"
                   />
                   <div>
@@ -1968,6 +1969,35 @@ watch(dailyDate, () => {
 
 const handleImgError = (e) => {
   e.target.src = defaultPigImage;
+};
+
+const getProductDisplayImage = (p) => {
+  if (!p) return defaultPigImage;
+  if (p.image) return p.image;
+  if (p.imageUrl) return p.imageUrl;
+  if (p.hinhAnh) return p.hinhAnh;
+  if (p.danhSachHinhAnh) {
+    try {
+      const arr = JSON.parse(p.danhSachHinhAnh);
+      if (Array.isArray(arr) && arr.length > 0 && arr[0]) return arr[0];
+    } catch (e) {}
+  }
+  // Check if there are shipment photos for this product or its supplier
+  if (allPurchases.value && allPurchases.value.length > 0) {
+    const matchingPurchase = allPurchases.value.find(pur => {
+      const items = pur.danhSachChiTiet || pur.items || [];
+      const hasItem = items.some(it => (it.sanPhamHeo?.id === p.id) || (it.loaiSize === p.sizeType || it.loaiSize === p.loaiSize));
+      const supId = p.supplierId || (p.nhaCungCap && p.nhaCungCap.id);
+      const purSupId = pur.supplierId || (pur.nhaCungCap && pur.nhaCungCap.id);
+      const matchSup = supId && purSupId && supId === purSupId;
+      return (hasItem || matchSup) && (pur.hinhAnhChuyenXe || pur.images);
+    });
+    if (matchingPurchase) {
+      const purImgs = getPurchaseImages(matchingPurchase);
+      if (purImgs && purImgs.length > 0) return purImgs[0];
+    }
+  }
+  return defaultPigImage;
 };
 
 const handleCurrencyInput = (e, targetObj, key) => {
