@@ -153,9 +153,14 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         }
 
         BigDecimal chiPhiPhuMoiCon = BigDecimal.ZERO;
-        if (!nccChiu && tongSoConChuyenXe > 0) {
+        if (tongSoConChuyenXe > 0) {
             BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
-            chiPhiPhuMoiCon = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+            BigDecimal perHead = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+            if (nccChiu) {
+                chiPhiPhuMoiCon = perHead.negate(); // Trừ tiền xe vào giá vốn mỗi con heo
+            } else {
+                chiPhiPhuMoiCon = perHead; // Cộng tiền xe vào giá vốn mỗi con heo
+            }
         }
 
         Long bankId = request.getTaiKhoanNganHangId() != null ? request.getTaiKhoanNganHangId() : request.getBankAccountId();
@@ -175,7 +180,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
             BigDecimal soKg = itReq.getSoKg() != null ? itReq.getSoKg() : (itReq.getWeightKg() != null ? itReq.getWeightKg() : BigDecimal.ZERO);
             BigDecimal giaVonGoc = itReq.getGiaNhapVon() != null ? itReq.getGiaNhapVon() : (itReq.getCostPrice() != null ? itReq.getCostPrice() : BigDecimal.ZERO);
-            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon);
+            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon).max(BigDecimal.ZERO);
 
             boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
             BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
@@ -210,10 +215,12 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             danhSachChiTiet.add(ctpn);
         }
 
-        BigDecimal tongTienNhap = nccChiu ? tienHangHeo : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal tongTienNhap = nccChiu 
+                ? tienHangHeo.subtract(chiPhiTienXe).subtract(chiPhiTienBai).max(BigDecimal.ZERO) 
+                : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
         BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
         if (nccChiu) {
-            soTienDaTra = tienHangHeo; // Nếu NCC bao tiền xe, tổng chi phí nhập của mình chỉ bằng đúng tiền hàng heo
+            soTienDaTra = tongTienNhap; // Nếu NCC chịu tiền xe, nợ NCC và số tiền trả là tiền hàng trừ tiền xe
         }
         BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
         LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
@@ -349,9 +356,14 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         }
 
         BigDecimal chiPhiPhuMoiCon = BigDecimal.ZERO;
-        if (!nccChiu && tongSoConChuyenXe > 0) {
+        if (tongSoConChuyenXe > 0) {
             BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
-            chiPhiPhuMoiCon = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+            BigDecimal perHead = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
+            if (nccChiu) {
+                chiPhiPhuMoiCon = perHead.negate(); // Trừ tiền xe vào giá vốn mỗi con heo
+            } else {
+                chiPhiPhuMoiCon = perHead; // Cộng tiền xe vào giá vốn mỗi con heo
+            }
         }
 
         Long bankId = request.getTaiKhoanNganHangId() != null ? request.getTaiKhoanNganHangId() : request.getBankAccountId();
@@ -372,7 +384,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
             BigDecimal soKg = itReq.getSoKg() != null ? itReq.getSoKg() : (itReq.getWeightKg() != null ? itReq.getWeightKg() : BigDecimal.ZERO);
             BigDecimal giaVonGoc = itReq.getGiaNhapVon() != null ? itReq.getGiaNhapVon() : (itReq.getCostPrice() != null ? itReq.getCostPrice() : BigDecimal.ZERO);
-            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon);
+            BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon).max(BigDecimal.ZERO);
 
             boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
             BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
@@ -408,10 +420,12 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             danhSachChiTietMoi.add(ctpn);
         }
 
-        BigDecimal tongTienNhap = nccChiu ? tienHangHeo : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
+        BigDecimal tongTienNhap = nccChiu 
+                ? tienHangHeo.subtract(chiPhiTienXe).subtract(chiPhiTienBai).max(BigDecimal.ZERO) 
+                : tienHangHeo.add(chiPhiTienXe).add(chiPhiTienBai);
         BigDecimal soTienDaTra = request.getSoTienThanhToan() != null ? request.getSoTienThanhToan() : (request.getPaidAmount() != null ? request.getPaidAmount() : tongTienNhap);
         if (nccChiu) {
-            soTienDaTra = tienHangHeo;
+            soTienDaTra = tongTienNhap;
         }
         BigDecimal congNoConThieu = tongTienNhap.subtract(soTienDaTra).max(BigDecimal.ZERO);
         LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());

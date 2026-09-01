@@ -1043,11 +1043,11 @@
                 Tiền xe ({{ formatVND(importForm.shippingFee) }}) + Tiền bãi ({{ formatVND(importForm.parkingFee) }}):
               </span>
               <div class="text-right">
-                <span class="font-bold text-cyan-300">
-                  {{ importForm.shippingPayer === 'supplier' ? '0 đ' : `+${formatVND((Number(importForm.shippingFee) || 0) + (Number(importForm.parkingFee) || 0))}` }}
+                <span :class="['font-bold', importForm.shippingPayer === 'supplier' ? 'text-rose-400' : 'text-cyan-300']">
+                  {{ importForm.shippingPayer === 'supplier' ? `-${formatVND((Number(importForm.shippingFee) || 0) + (Number(importForm.parkingFee) || 0))}` : `+${formatVND((Number(importForm.shippingFee) || 0) + (Number(importForm.parkingFee) || 0))}` }}
                 </span>
                 <span :class="['block text-[10px] font-bold', importForm.shippingPayer === 'supplier' ? 'text-amber-400' : 'text-blue-400']">
-                  ({{ importForm.shippingPayer === 'supplier' ? 'NCC Bao Tiền Xe - Không tính vào chi phí của mình' : 'Mình Chịu - Cộng vào tổng chi phí & giá vốn' }})
+                  ({{ importForm.shippingPayer === 'supplier' ? 'NCC Chịu - Trừ tiền xe vào tiền hàng NCC' : 'Mình Chịu - Cộng tiền xe vào vốn heo' }})
                 </span>
               </div>
             </div>
@@ -1056,8 +1056,10 @@
               <div>
                 <span class="text-xs text-slate-400 uppercase font-bold block">Tổng Chi Phí Chuyến Xe:</span>
                 <span class="text-[10px] text-amber-300 font-medium">
-                  Tổng {{ totalHeadCountInTrip }} con • Phí xe bãi phân bổ: 
-                  <strong class="text-white">{{ importForm.shippingPayer === 'supplier' ? '0 đ (NCC bao tiền xe)' : `+${formatVND(extraCostPerHead)}/con` }}</strong>
+                  Tổng {{ totalHeadCountInTrip }} con • 
+                  <strong class="text-white">
+                    {{ importForm.shippingPayer === 'supplier' ? `Giảm ${formatVND(Math.abs(extraCostPerHead))}/con (trừ tiền xe)` : `+${formatVND(extraCostPerHead)}/con (tiền xe)` }}
+                  </strong>
                 </span>
               </div>
               <div class="text-right">
@@ -1071,12 +1073,14 @@
             </div>
 
             <!-- CHÚ THÍCH TRỪ TIỀN VÀO TÀI KHOẢN NCC -->
-            <div v-if="importForm.shippingPayer === 'supplier'" class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 space-y-0.5">
+            <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 space-y-0.5">
               <div class="font-bold flex items-center gap-1">
-                <span>🚛 Cơ Chế NCC Bao Tiền Xe:</span>
+                <span>{{ importForm.shippingPayer === 'supplier' ? '🏭 NCC Chịu Tiền Xe:' : '👤 Mình Chịu Tiền Xe:' }}</span>
               </div>
               <div class="text-slate-300">
-                Nhà Cung Cấp chịu hoàn toàn chi phí tiền xe. Tổng tiền chuyến xe của bạn chỉ bằng đúng tiền hàng: <strong>{{ formatVND(totalTripCost) }}</strong>. Giá vốn nhập heo giữ nguyên gốc là: <strong>~{{ formatVND(unitCostAllocated) }}/con</strong>.
+                {{ importForm.shippingPayer === 'supplier' 
+                  ? `Nợ NCC / Tiền trả NCC: ${formatVND(totalTripCost)} (Tiền hàng ${formatVND(totalProductCost)} trừ ${formatVND((Number(importForm.shippingFee) || 0) + (Number(importForm.parkingFee) || 0))} tiền xe). Giá vốn heo: ~${formatVND(unitCostAllocated)}/con.`
+                  : `Nợ NCC: ${formatVND(totalProductCost)}. Tổng chi phí chuyến xe gồm tiền xe: ${formatVND(totalTripCost)}. Giá vốn heo: ~${formatVND(unitCostAllocated)}/con.` }}
               </div>
             </div>
           </div>
@@ -1551,11 +1555,11 @@
                 Tiền xe ({{ formatVND(editForm.shippingFee) }}) + Tiền bãi ({{ formatVND(editForm.parkingFee) }}):
               </span>
               <div class="text-right">
-                <span class="font-bold text-cyan-300">
-                  {{ editForm.shippingPayer === 'supplier' ? '0 đ' : `+${formatVND((Number(editForm.shippingFee) || 0) + (Number(editForm.parkingFee) || 0))}` }}
+                <span :class="['font-bold', editForm.shippingPayer === 'supplier' ? 'text-rose-400' : 'text-cyan-300']">
+                  {{ editForm.shippingPayer === 'supplier' ? `-${formatVND((Number(editForm.shippingFee) || 0) + (Number(editForm.parkingFee) || 0))}` : `+${formatVND((Number(editForm.shippingFee) || 0) + (Number(editForm.parkingFee) || 0))}` }}
                 </span>
                 <span :class="['block text-[10px] font-bold', editForm.shippingPayer === 'supplier' ? 'text-amber-400' : 'text-blue-400']">
-                  ({{ editForm.shippingPayer === 'supplier' ? 'NCC Bao Tiền Xe - Không tính vào chi phí của mình' : 'Mình Chịu - Cộng vào tổng chi phí & giá vốn' }})
+                  ({{ editForm.shippingPayer === 'supplier' ? 'NCC Chịu - Trừ tiền xe vào tiền hàng NCC' : 'Mình Chịu - Cộng tiền xe vào vốn heo' }})
                 </span>
               </div>
             </div>
@@ -1564,8 +1568,10 @@
               <div>
                 <span class="text-xs text-slate-400 uppercase font-bold block">Tổng Chi Phí Chuyến Xe:</span>
                 <span class="text-[10px] text-amber-300 font-medium">
-                  Tổng {{ editTotalHeadCountInTrip }} con • Phí xe bãi phân bổ: 
-                  <strong class="text-white">{{ editForm.shippingPayer === 'supplier' ? '0 đ (NCC bao tiền xe)' : `+${formatVND(editExtraCostPerHead)}/con` }}</strong>
+                  Tổng {{ editTotalHeadCountInTrip }} con • 
+                  <strong class="text-white">
+                    {{ editForm.shippingPayer === 'supplier' ? `Giảm ${formatVND(Math.abs(editExtraCostPerHead))}/con (trừ tiền xe)` : `+${formatVND(editExtraCostPerHead)}/con (tiền xe)` }}
+                  </strong>
                 </span>
               </div>
               <div class="text-right">
@@ -1581,10 +1587,12 @@
             <!-- CHÚ THÍCH CÂN ĐỐI TÀI KHOẢN NCC -->
             <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 space-y-0.5">
               <div class="font-bold flex items-center gap-1">
-                <span>⚡ {{ editForm.shippingPayer === 'supplier' ? '🚛 Nhà Cung Cấp Bao Tiền Xe:' : '👤 Mình Chịu Tiền Xe:' }}</span>
+                <span>{{ editForm.shippingPayer === 'supplier' ? '🏭 NCC Chịu Tiền Xe:' : '👤 Mình Chịu Tiền Xe:' }}</span>
               </div>
               <div class="text-slate-300">
-                {{ editForm.shippingPayer === 'supplier' ? `NCC chịu hoàn toàn tiền xe. Bạn chỉ thanh toán đúng tiền hàng heo: ${formatVND(editTotalTripCost)}. Giá vốn heo giữ nguyên gốc là: ~${formatVND(editUnitCostAllocated)}/con.` : `Tiền xe + tiền bãi được cộng vào tổng chi phí chuyến xe và phân bổ đều vào giá vốn heo.` }}
+                {{ editForm.shippingPayer === 'supplier' 
+                  ? `Nợ NCC / Tiền trả NCC: ${formatVND(editTotalTripCost)} (Tiền hàng ${formatVND(editTotalProductCost)} trừ ${formatVND((Number(editForm.shippingFee) || 0) + (Number(editForm.parkingFee) || 0))} tiền xe). Giá vốn heo: ~${formatVND(editUnitCostAllocated)}/con.` 
+                  : `Nợ NCC: ${formatVND(editTotalProductCost)}. Tổng chi phí chuyến xe gồm tiền xe: ${formatVND(editTotalTripCost)}. Giá vốn heo: ~${formatVND(editUnitCostAllocated)}/con.` }}
               </div>
             </div>
           </div>
@@ -2129,26 +2137,25 @@ const totalProductCost = computed(() => {
 });
 
 const totalTripCost = computed(() => {
+  const extra = (Number(importForm.value.shippingFee) || 0) + (Number(importForm.value.parkingFee) || 0);
   if (importForm.value.shippingPayer === 'supplier') {
-    return totalProductCost.value;
+    return Math.max(0, totalProductCost.value - extra);
   }
-  return totalProductCost.value + (Number(importForm.value.shippingFee) || 0) + (Number(importForm.value.parkingFee) || 0);
+  return totalProductCost.value + extra;
 });
 
 const extraCostPerHead = computed(() => {
-  if (importForm.value.shippingPayer === 'supplier') {
-    return 0; // NCC chịu tiền xe bãi nên không phân bổ vào giá vốn heo
-  }
   if (totalHeadCountInTrip.value <= 0) return 0;
   const extraFees = (Number(importForm.value.shippingFee) || 0) + (Number(importForm.value.parkingFee) || 0);
-  return Math.round(extraFees / totalHeadCountInTrip.value);
+  const perHead = Math.round(extraFees / totalHeadCountInTrip.value);
+  if (importForm.value.shippingPayer === 'supplier') {
+    return -perHead;
+  }
+  return perHead;
 });
 
 const unitCostAllocated = computed(() => {
   if (totalHeadCountInTrip.value <= 0) return 0;
-  if (importForm.value.shippingPayer === 'supplier') {
-    return Math.round(totalProductCost.value / totalHeadCountInTrip.value);
-  }
   return Math.round(totalTripCost.value / totalHeadCountInTrip.value);
 });
 
@@ -2387,26 +2394,27 @@ const editTotalProductCost = computed(() => {
 });
 
 const editTotalTripCost = computed(() => {
+  const extra = (Number(editForm.value.shippingFee) || 0) + (Number(editForm.value.parkingFee) || 0);
   if (editForm.value.shippingPayer === 'supplier') {
-    return editTotalProductCost.value;
+    return Math.max(0, editTotalProductCost.value - extra);
   }
-  return editTotalProductCost.value + (Number(editForm.value.shippingFee) || 0) + (Number(editForm.value.parkingFee) || 0);
+  return editTotalProductCost.value + extra;
 });
 
 const editExtraCostPerHead = computed(() => {
-  if (editForm.value.shippingPayer === 'supplier') return 0;
   const count = editTotalHeadCountInTrip.value;
   if (count <= 0) return 0;
   const extraFees = (Number(editForm.value.shippingFee) || 0) + (Number(editForm.value.parkingFee) || 0);
-  return Math.round(extraFees / count);
+  const perHead = Math.round(extraFees / count);
+  if (editForm.value.shippingPayer === 'supplier') {
+    return -perHead;
+  }
+  return perHead;
 });
 
 const editUnitCostAllocated = computed(() => {
   const count = editTotalHeadCountInTrip.value;
   if (count <= 0) return 0;
-  if (editForm.value.shippingPayer === 'supplier') {
-    return Math.round(editTotalProductCost.value / count);
-  }
   return Math.round(editTotalTripCost.value / count);
 });
 
