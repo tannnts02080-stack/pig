@@ -15,16 +15,18 @@
       @logout="handleLogout"
     />
 
-    <!-- Main Content Area with KeepAlive for Instant 0ms Tab Switching -->
+    <!-- Main Content Area with v-show for instantaneous 0ms Tab Switching -->
     <main class="flex-1 pb-20 lg:pb-10">
-      <KeepAlive>
-        <component 
-          :is="tabComponents[currentTab] || POS" 
-          :settings="settings" 
-          @refresh="fetchSettings" 
-          @logout="handleLogout" 
-        />
-      </KeepAlive>
+      <POS v-show="currentTab === 'pos'" />
+      <Products v-show="currentTab === 'products'" />
+      <Inventory v-show="currentTab === 'inventory'" />
+      <Customers v-show="currentTab === 'customers'" />
+      <SizeManager v-show="currentTab === 'sizes'" />
+      <Orders v-show="currentTab === 'orders'" />
+      <BankAccounts v-show="currentTab === 'banks'" />
+      <Reports v-show="currentTab === 'reports'" />
+      <ConnectMobile v-show="currentTab === 'connect'" />
+      <Settings v-show="currentTab === 'settings'" :settings="settings" @refresh="fetchSettings" @logout="handleLogout" />
     </main>
 
     <!-- Global Dialog & Toast Container -->

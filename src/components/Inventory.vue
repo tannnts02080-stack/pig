@@ -1725,11 +1725,13 @@ import {
 import { formatVND, formatNumber, formatDate } from '../utils/formatters';
 import { showConfirm, showAlert, showToast } from '../utils/dialog';
 
+const defaultPigImage = 'https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=600&auto=format&fit=crop&q=80';
+
 const products = ref([]);
 const sizes = ref([]);
 const suppliers = ref([]);
 const bankAccounts = ref([]);
-const loading = ref(true);
+const loading = ref(false);
 
 const subTab = ref('stock');
 const showImportModal = ref(false);
@@ -1965,7 +1967,7 @@ watch(dailyDate, () => {
 });
 
 const handleImgError = (e) => {
-  e.target.src = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80';
+  e.target.src = defaultPigImage;
 };
 
 const handleCurrencyInput = (e, targetObj, key) => {

@@ -923,7 +923,7 @@ const customers = ref([]);
 const purchases = ref([]);
 const orders = ref([]);
 const bankAccounts = ref([]);
-const loading = ref(true);
+const loading = ref(false);
 
 const showModal = ref(false);
 const modalType = ref('supplier');

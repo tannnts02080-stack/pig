@@ -1015,12 +1015,12 @@ import { formatVND, formatNumber, formatDate } from '../utils/formatters';
 import { generateVietQRUrl } from '../utils/vietqr';
 import { showToast } from '../utils/dialog';
 
-const defaultPigImage = 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80';
+const defaultPigImage = 'https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=600&auto=format&fit=crop&q=80';
 
 const products = ref([]);
 const bankAccounts = ref([]);
 const customers = ref([]);
-const loading = ref(true);
+const loading = ref(false);
 
 const search = ref('');
 const filterPreserve = ref('ALL');
