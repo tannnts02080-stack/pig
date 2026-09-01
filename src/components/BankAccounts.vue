@@ -1171,6 +1171,10 @@ const fetchData = async () => {
 
 onMounted(() => {
   fetchData();
+  window.addEventListener('pig-suppliers-updated', () => fetchData());
+  window.addEventListener('pig-banks-updated', () => fetchData());
+  window.addEventListener('pig-purchases-updated', () => fetchData());
+  window.addEventListener('pig-orders-updated', () => fetchData());
 });
 
 // Tách tài khoản NCC & Người Nhà
@@ -1341,8 +1345,10 @@ const handleCurrencyInput = (event, target, field) => {
 };
 
 const handleBankSelect = () => {
-  const b = popularBanks.find(x => x.code === accountForm.value.bankCode);
-  if (b) accountForm.value.bankName = b.name;
+  const b = vietnameseBanks.find(x => x.name === accountForm.value.bankName);
+  if (b) {
+    accountForm.value.bankCode = b.code;
+  }
 };
 
 // Open Modals
@@ -1354,8 +1360,16 @@ const handleOpenAddAccount = () => {
   }
 };
 
-const handleOpenAddSupplierAccount = () => {
+const handleOpenAddSupplierAccount = async () => {
   editingAccount.value = null;
+  try {
+    const res = await fetch('/api/suppliers');
+    if (res.ok) {
+      const data = await res.json();
+      suppliers.value = Array.isArray(data) ? data : (data?.data || []);
+    }
+  } catch (e) {}
+
   accountForm.value = {
     accountType: 'NCC',
     supplierId: suppliers.value[0]?.id || '',
@@ -1384,8 +1398,16 @@ const handleOpenAddFamilyAccount = () => {
   showAccountModal.value = true;
 };
 
-const handleOpenEdit = (acc) => {
+const handleOpenEdit = async (acc) => {
   editingAccount.value = acc;
+  try {
+    const res = await fetch('/api/suppliers');
+    if (res.ok) {
+      const data = await res.json();
+      suppliers.value = Array.isArray(data) ? data : (data?.data || []);
+    }
+  } catch (e) {}
+
   accountForm.value = {
     accountType: acc.loaiTaiKhoan || acc.accountType || 'NCC',
     supplierId: acc.nhaCungCapId || acc.supplierId || '',
@@ -1419,7 +1441,7 @@ const handleQuickCustomerPay = (acc) => {
   showCustomerPayModal.value = true;
 };
 
-const handleOpenDepositSupplier = () => {
+const handleOpenDeposit = () => {
   depositForm.value = {
     bankAccountId: supplierAccounts.value[0]?.id || '',
     amount: '',
@@ -1432,7 +1454,7 @@ const handleQuickDeposit = (acc) => {
   depositForm.value = {
     bankAccountId: acc.id,
     amount: '',
-    reason: `Chuyển cọc trước cho ${acc.accountHolder || acc.chuTaiKhoan}`
+    reason: `Nộp tiền cọc vào STK ${acc.bankName || acc.tenNganHang} (${acc.accountHolder || acc.chuTaiKhoan})`
   };
   showDepositModal.value = true;
 };
@@ -1450,21 +1472,30 @@ const handleOpenAddProfit = () => {
 
 // Save handlers
 const handleSaveAccount = async () => {
+  if (!accountForm.value.accountNumber.trim()) {
+    showToast("Vui lòng nhập số tài khoản ngân hàng!", "warning");
+    return;
+  }
+  if (!accountForm.value.accountHolder.trim()) {
+    showToast("Vui lòng nhập tên chủ tài khoản!", "warning");
+    return;
+  }
+
   const payload = {
+    accountType: accountForm.value.accountType,
+    loaiTaiKhoan: accountForm.value.accountType,
+    supplierId: accountForm.value.accountType === 'NCC' ? Number(accountForm.value.supplierId) : null,
+    nhaCungCapId: accountForm.value.accountType === 'NCC' ? Number(accountForm.value.supplierId) : null,
+    familyMemberName: accountForm.value.accountType === 'NGUOI_NHA' ? accountForm.value.familyMemberName : null,
+    tenNguoiNha: accountForm.value.accountType === 'NGUOI_NHA' ? accountForm.value.familyMemberName : null,
     bankName: accountForm.value.bankName,
     tenNganHang: accountForm.value.bankName,
     bankCode: accountForm.value.bankCode,
     maNganHang: accountForm.value.bankCode,
-    accountNumber: accountForm.value.accountNumber,
-    soTaiKhoan: accountForm.value.accountNumber,
-    accountHolder: accountForm.value.accountHolder.toUpperCase(),
-    chuTaiKhoan: accountForm.value.accountHolder.toUpperCase(),
-    loaiTaiKhoan: accountForm.value.accountType,
-    accountType: accountForm.value.accountType,
-    nhaCungCapId: accountForm.value.supplierId ? Number(accountForm.value.supplierId) : null,
-    supplierId: accountForm.value.supplierId ? Number(accountForm.value.supplierId) : null,
-    tenNguoiNha: accountForm.value.familyMemberName,
-    familyMemberName: accountForm.value.familyMemberName,
+    accountNumber: accountForm.value.accountNumber.trim(),
+    soTaiKhoan: accountForm.value.accountNumber.trim(),
+    accountHolder: accountForm.value.accountHolder.trim().toUpperCase(),
+    chuTaiKhoan: accountForm.value.accountHolder.trim().toUpperCase(),
     notes: accountForm.value.notes,
     ghiChu: accountForm.value.notes
   };
@@ -1483,6 +1514,7 @@ const handleSaveAccount = async () => {
       showToast(editingAccount.value ? "Cập nhật tài khoản ngân hàng thành công!" : "Thêm mới tài khoản ngân hàng thành công!", "success");
       showAccountModal.value = false;
       fetchData();
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi lưu tài khoản: " + (err.message || 'Không thể hoàn tất thao tác'), "error");
@@ -1508,6 +1540,7 @@ const handleDeleteAccount = async (id, name) => {
     if (res.ok) {
       showToast("Đã xóa tài khoản ngân hàng thành công!", "success");
       fetchData();
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi xóa tài khoản: " + (err.message || 'Không thể xóa'), "error");

@@ -1189,6 +1189,10 @@ const fetchData = async (isSilent = false) => {
 
 onMounted(() => {
   fetchData();
+  window.addEventListener('pig-products-updated', () => fetchData(true));
+  window.addEventListener('pig-customers-updated', () => fetchData(true));
+  window.addEventListener('pig-banks-updated', () => fetchData(true));
+  window.addEventListener('pig-purchases-updated', () => fetchData(true));
 });
 
 const getPreserveBadge = (type) => {
@@ -1658,7 +1662,11 @@ const handlePlaceOrder = async () => {
       try {
         confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
       } catch (e) {}
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-orders-updated'));
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
+      window.dispatchEvent(new CustomEvent('pig-customers-updated'));
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showAlert(err.message || 'Không thể xuất đơn hàng vào hệ thống', 'Lỗi Tạo Đơn');

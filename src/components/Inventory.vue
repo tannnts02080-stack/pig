@@ -1972,7 +1972,12 @@ const fetchData = async (isSilent = false) => {
 
 onMounted(() => {
   fetchData();
-  window.addEventListener('pig-sizes-updated', fetchData);
+  window.addEventListener('pig-suppliers-updated', () => fetchData(true));
+  window.addEventListener('pig-banks-updated', () => fetchData(true));
+  window.addEventListener('pig-sizes-updated', () => fetchData(true));
+  window.addEventListener('pig-products-updated', () => fetchData(true));
+  window.addEventListener('pig-purchases-updated', () => fetchData(true));
+  window.addEventListener('pig-orders-updated', () => fetchData(true));
 });
 
 watch(dailyDate, () => {
@@ -2311,7 +2316,11 @@ const handleSaveImport = async () => {
       showToast("Lập phiếu nhập chuyến xe thành công! Số lượng heo đã được cộng vào tồn kho.", "success");
       resetImportForm();
       showImportModal.value = false;
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-purchases-updated'));
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
+      window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi khi lưu phiếu nhập: " + (err.message || 'Không thể hoàn tất thao tác'), "error");
@@ -2579,7 +2588,11 @@ const handleSaveEditProduct = async () => {
     if (res.ok) {
       showToast("Cập nhật thông tin chuyến xe thành công! Tồn kho đã được đồng bộ chuẩn xác.", "success");
       showEditModal.value = false;
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-purchases-updated'));
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
+      window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi cập nhật chuyến xe: " + (err.message || 'Không thể lưu'), "error");
@@ -2733,7 +2746,11 @@ const handleDeletePurchase = async (pn) => {
     const res = await fetch(`/api/purchases/${pn.id}`, { method: 'DELETE' });
     if (res.ok) {
       showToast(`✅ Đã xóa chuyến xe [${code}] thành công!`, "success");
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-purchases-updated'));
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
+      window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi xóa chuyến xe: " + (err.message || 'Không thể xóa'), "error");

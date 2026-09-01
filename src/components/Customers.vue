@@ -1361,6 +1361,11 @@ const handleSave = async () => {
       showToast(editingItem.value ? 'Cập nhật thông tin thành công!' : 'Đã thêm mới thành công!', 'success');
       showModal.value = false;
       fetchData();
+      if (isSupplier) {
+        window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
+      } else {
+        window.dispatchEvent(new CustomEvent('pig-customers-updated'));
+      }
     } else {
       const err = await res.json().catch(() => ({}));
       showToast('Lỗi lưu thông tin: ' + (err.message || 'Không thể lưu'), 'error');
@@ -1389,6 +1394,11 @@ const handleDelete = async (item, type) => {
     if (res.ok) {
       showToast('Đã xóa ' + (isSupplier ? 'Nhà Cung Cấp' : 'Khách Hàng') + ' thành công!', 'success');
       fetchData();
+      if (isSupplier) {
+        window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
+      } else {
+        window.dispatchEvent(new CustomEvent('pig-customers-updated'));
+      }
     } else {
       const err = await res.json().catch(() => ({}));
       showToast('Lỗi xóa: ' + (err.message || 'Không thể xóa đối tượng này'), 'error');

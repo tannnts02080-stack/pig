@@ -1949,7 +1949,8 @@ const handleSaveProduct = async () => {
     if (res.ok) {
       showToast(editingProduct.value ? "Cập nhật thông tin sản phẩm thành công!" : "Tạo sản phẩm mới thành công!", "success");
       showModal.value = false;
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
     } else {
       const err = await res.json().catch(() => ({}));
       showToast("Lỗi lưu sản phẩm: " + (err.message || 'Không thể hoàn tất thao tác'), "error");
@@ -1976,7 +1977,8 @@ const handleDeleteProduct = async (p) => {
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
     if (res.ok) {
       showToast("Đã xóa sản phẩm khỏi danh mục thành công!", "success");
-      fetchData();
+      fetchData(true);
+      window.dispatchEvent(new CustomEvent('pig-products-updated'));
     } else {
       showToast("Không thể xóa sản phẩm này vì đã có dữ liệu đơn hàng hoặc phiếu nhập liên kết!", "error");
     }
@@ -2010,5 +2012,9 @@ const fetchData = async (isSilent = false) => {
 
 onMounted(() => {
   fetchData();
+  window.addEventListener('pig-suppliers-updated', () => fetchData(true));
+  window.addEventListener('pig-sizes-updated', () => fetchData(true));
+  window.addEventListener('pig-purchases-updated', () => fetchData(true));
+  window.addEventListener('pig-products-updated', () => fetchData(true));
 });
 </script>
