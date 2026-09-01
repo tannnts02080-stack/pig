@@ -1272,9 +1272,11 @@ const historySummary = computed(() => {
 });
 
 // FETCH DỮ LIỆU TOÀN DIỆN (NCC, KHÁCH HÀNG, PHIẾU NHẬP, ĐƠN HÀNG, TÀI KHOẢN NGÂN HÀNG)
-const fetchData = async () => {
+const fetchData = async (isSilent = false) => {
   try {
-    loading.value = true;
+    if (!isSilent && suppliers.value.length === 0 && customers.value.length === 0) {
+      loading.value = true;
+    }
     const [supRes, custRes, purchRes, ordRes, bankRes] = await Promise.all([
       fetch('/api/suppliers').catch(() => null),
       fetch('/api/customers').catch(() => null),

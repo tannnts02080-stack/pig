@@ -1985,8 +1985,10 @@ const handleDeleteProduct = async (p) => {
   }
 };
 
-const fetchData = async () => {
-  loading.value = true;
+const fetchData = async (isSilent = false) => {
+  if (!isSilent && products.value.length === 0) {
+    loading.value = true;
+  }
   try {
     const [pRes, sRes, puRes, szRes] = await Promise.all([
       fetch('/api/products').then(r => r.json()).catch(() => []),

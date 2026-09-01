@@ -1901,9 +1901,11 @@ const importForm = ref({
   ]
 });
 
-const fetchData = async () => {
+const fetchData = async (isSilent = false) => {
   try {
-    loading.value = true;
+    if (!isSilent && products.value.length === 0 && suppliers.value.length === 0) {
+      loading.value = true;
+    }
     const [prodRes, sizeRes, supRes, bankRes, purRes, dailyRes] = await Promise.all([
       fetch('/api/products').catch(() => null),
       fetch('/api/sizes').catch(() => null),

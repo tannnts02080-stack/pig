@@ -15,18 +15,16 @@
       @logout="handleLogout"
     />
 
-    <!-- Main Content Area -->
+    <!-- Main Content Area with KeepAlive for Instant 0ms Tab Switching -->
     <main class="flex-1 pb-20 lg:pb-10">
-      <POS v-if="currentTab === 'pos'" />
-      <Products v-if="currentTab === 'products'" />
-      <Inventory v-if="currentTab === 'inventory'" />
-      <Customers v-if="currentTab === 'customers'" />
-      <SizeManager v-if="currentTab === 'sizes'" />
-      <Orders v-if="currentTab === 'orders'" />
-      <BankAccounts v-if="currentTab === 'banks'" />
-      <Reports v-if="currentTab === 'reports'" />
-      <ConnectMobile v-if="currentTab === 'connect'" />
-      <Settings v-if="currentTab === 'settings'" :settings="settings" @refresh="fetchSettings" @logout="handleLogout" />
+      <KeepAlive>
+        <component 
+          :is="tabComponents[currentTab] || POS" 
+          :settings="settings" 
+          @refresh="fetchSettings" 
+          @logout="handleLogout" 
+        />
+      </KeepAlive>
     </main>
 
     <!-- Global Dialog & Toast Container -->
@@ -49,6 +47,19 @@ import Customers from './components/Customers.vue';
 import SizeManager from './components/SizeManager.vue';
 import ConnectMobile from './components/ConnectMobile.vue';
 import Settings from './components/Settings.vue';
+
+const tabComponents = {
+  pos: POS,
+  products: Products,
+  inventory: Inventory,
+  customers: Customers,
+  sizes: SizeManager,
+  orders: Orders,
+  banks: BankAccounts,
+  reports: Reports,
+  connect: ConnectMobile,
+  settings: Settings
+};
 
 const isAuthenticated = ref(false);
 const currentTab = ref('pos');

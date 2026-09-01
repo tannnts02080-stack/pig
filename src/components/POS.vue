@@ -1146,9 +1146,11 @@ const handleOrderShippingInput = (e) => {
   orderForm.value.shippingFee = raw ? Number(raw) : 0;
 };
 
-const fetchData = async () => {
+const fetchData = async (isSilent = false) => {
   try {
-    loading.value = true;
+    if (!isSilent && products.value.length === 0) {
+      loading.value = true;
+    }
     const [prodRes, bankRes, custRes] = await Promise.all([
       fetch('/api/products').catch(() => null),
       fetch('/api/bank-accounts').catch(() => null),
