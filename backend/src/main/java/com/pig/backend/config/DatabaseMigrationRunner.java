@@ -52,6 +52,9 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
         safeAddColumn("TAI_KHOAN_NGAN_HANG", "ten_nguoi_nha", "NVARCHAR(150)");
 
         try {
+            // Xóa sạch các dòng tiền của các phiếu nhập đã bị xóa khỏi kho
+            jdbcTemplate.execute("DELETE FROM DONG_TIEN_NGAN_HANG WHERE loai_nghiepVu IN ('NHAP_CHUYEN_XE_HEO', 'NHAP_HANG_NCC', 'CHINH_SUA_NHAP') AND ma_tham_chieu NOT IN (SELECT ma_phieu_nhap FROM PHIEU_NHAP_KHO WHERE ma_phieu_nhap IS NOT NULL);");
+
             // Chuẩn hóa lại các phiếu nhập cũ theo logic NCC bao tiền xe
             jdbcTemplate.execute("UPDATE PHIEU_NHAP_KHO SET tong_tien_nhap = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END, so_tien_da_tra = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END WHERE nguoi_chiu_tien_xe IS NOT NULL;");
             
@@ -60,6 +63,9 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             
             // Cân đối lại số dư tài khoản ngân hàng NCC đúng theo thực tế
             jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
+            
+            // Cân đối lại công nợ NCC
+            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT SUM(so_du_hien_tai) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id), 0);");
         } catch (Exception e) {
             log.warn("Migration balance recalculation note: {}", e.getMessage());
         }

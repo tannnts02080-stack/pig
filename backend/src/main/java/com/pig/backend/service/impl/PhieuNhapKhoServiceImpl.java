@@ -22,19 +22,22 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
     private final SanPhamHeoRepository sanPhamHeoRepository;
     private final TaiKhoanNganHangRepository taiKhoanNganHangRepository;
     private final DongTienNganHangRepository dongTienNganHangRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public PhieuNhapKhoServiceImpl(
             PhieuNhapKhoRepository phieuNhapKhoRepository,
             NhaCungCapRepository nhaCungCapRepository,
             SanPhamHeoRepository sanPhamHeoRepository,
             TaiKhoanNganHangRepository taiKhoanNganHangRepository,
-            DongTienNganHangRepository dongTienNganHangRepository
+            DongTienNganHangRepository dongTienNganHangRepository,
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate
     ) {
         this.phieuNhapKhoRepository = phieuNhapKhoRepository;
         this.nhaCungCapRepository = nhaCungCapRepository;
         this.sanPhamHeoRepository = sanPhamHeoRepository;
         this.taiKhoanNganHangRepository = taiKhoanNganHangRepository;
         this.dongTienNganHangRepository = dongTienNganHangRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -50,34 +53,39 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
     @Override
     @Transactional
     public void xoaPhieuNhap(Long id) {
-        phieuNhapKhoRepository.findById(id).ifPresent(pn -> {
-            // Hoàn lại số dư tài khoản ngân hàng & công nợ NCC nếu đã trừ
-            String maPhieu = pn.getMaPhieuNhap();
-            if (maPhieu != null) {
-                try {
-                    dongTienNganHangRepository.findAllByOrderByNgayGiaoDichDesc().stream()
-                            .filter(dt -> maPhieu.equals(dt.getMaThamChieu()))
-                            .findFirst()
-                            .ifPresent(dt -> {
-                                TaiKhoanNganHang tk = dt.getTaiKhoanNganHang();
-                                if (tk != null && dt.getSoTien() != null) {
-                                    tk.setSoDuHienTai(tk.getSoDuHienTai().add(dt.getSoTien()));
-                                    taiKhoanNganHangRepository.save(tk);
-                                }
-                                Long nccId = dt.getNhaCungCapId();
-                                if (nccId != null && dt.getSoTien() != null) {
-                                    nhaCungCapRepository.findById(nccId).ifPresent(ncc -> {
-                                        BigDecimal cur = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
-                                        ncc.setCongNoPhaiTra(cur.add(dt.getSoTien()));
-                                        nhaCungCapRepository.save(ncc);
-                                    });
-                                }
-                                dongTienNganHangRepository.delete(dt);
-                            });
-                } catch (Exception ignored) {}
+        PhieuNhapKho pn = phieuNhapKhoRepository.findById(id).orElse(null);
+        if (pn == null) return;
+
+        // 1. Hoàn lại số lượng heo tồn kho
+        if (pn.getDanhSachChiTiet() != null) {
+            for (ChiTietPhieuNhap oldCt : pn.getDanhSachChiTiet()) {
+                SanPhamHeo sp = oldCt.getSanPhamHeo();
+                if (sp != null) {
+                    int oldCon = oldCt.getSoLuongCon() != null && oldCt.getSoLuongCon() > 0 ? oldCt.getSoLuongCon() : 1;
+                    sp.setSoLuongCon(Math.max(0, sp.getSoLuongCon() - oldCon));
+                    BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
+                    BigDecimal oldKg = oldCt.getSoKg() != null ? oldCt.getSoKg() : BigDecimal.valueOf(oldCon).multiply(w);
+                    sp.setSoKgTonKho(sp.getSoKgTonKho().subtract(oldKg).max(BigDecimal.ZERO));
+                    sanPhamHeoRepository.save(sp);
+                }
             }
-            phieuNhapKhoRepository.delete(pn);
-        });
+        }
+
+        // 2. Xóa các dòng tiền ngân hàng liên quan đến phiếu nhập này
+        String maPhieu = pn.getMaPhieuNhap();
+        try {
+            if (maPhieu != null) {
+                jdbcTemplate.update("DELETE FROM DONG_TIEN_NGAN_HANG WHERE ma_tham_chieu = ? OR mo_ta LIKE ?", maPhieu, "%" + maPhieu + "%");
+            }
+            jdbcTemplate.update("DELETE FROM CHI_TIET_PHIEU_NHAP WHERE phieu_nhap_kho_id = ?", id);
+            jdbcTemplate.update("DELETE FROM PHIEU_NHAP_KHO WHERE id = ?", id);
+
+            // 3. Tự động cân bằng lại số dư ngân hàng và công nợ NCC
+            jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
+            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT SUM(so_du_hien_tai) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id), 0);");
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa phiếu nhập: " + e.getMessage());
+        }
     }
 
     private String formatVND(BigDecimal val) {

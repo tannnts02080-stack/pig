@@ -1717,6 +1717,8 @@ const handleClearAllTransactions = async () => {
     if (res.ok) {
       showToast('Đã dọn sạch toàn bộ dữ liệu dòng tiền thử nghiệm thành công!', 'success');
       fetchData();
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
+      window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
     } else {
       showToast('Lỗi khi xóa dữ liệu dòng tiền', 'error');
     }
@@ -1729,7 +1731,7 @@ const handleDeleteTransaction = async (id) => {
   if (!id) return;
   const confirmed = await showConfirm({
     title: 'Xóa Giao Dịch Dòng Tiền',
-    message: 'Bạn có chắc chắn muốn xóa dòng giao dịch này?',
+    message: 'Bạn có chắc chắn muốn xóa dòng giao dịch này? Số dư tài khoản sẽ tự động được cập nhật lại.',
     confirmText: 'Xóa Giao Dịch',
     cancelText: 'Hủy Bỏ',
     type: 'danger'
@@ -1741,6 +1743,8 @@ const handleDeleteTransaction = async (id) => {
     if (res.ok) {
       showToast('Đã xóa giao dịch dòng tiền thành công!', 'success');
       fetchData();
+      window.dispatchEvent(new CustomEvent('pig-banks-updated'));
+      window.dispatchEvent(new CustomEvent('pig-suppliers-updated'));
     } else {
       showToast('Lỗi khi xóa giao dịch dòng tiền', 'error');
     }
