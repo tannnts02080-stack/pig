@@ -1058,7 +1058,7 @@
                 <span class="text-[10px] text-amber-300 font-medium">
                   Tổng {{ totalHeadCountInTrip }} con • 
                   <strong class="text-white">
-                    {{ importForm.shippingPayer === 'supplier' ? `Giảm ${formatVND(Math.abs(extraCostPerHead))}/con (trừ tiền xe)` : `+${formatVND(extraCostPerHead)}/con (tiền xe)` }}
+                    {{ importForm.shippingPayer === 'supplier' ? 'Giữ nguyên giá vốn mua' : `+${formatVND(extraCostPerHead)}/con (tiền xe)` }}
                   </strong>
                 </span>
               </div>
@@ -1570,7 +1570,7 @@
                 <span class="text-[10px] text-amber-300 font-medium">
                   Tổng {{ editTotalHeadCountInTrip }} con • 
                   <strong class="text-white">
-                    {{ editForm.shippingPayer === 'supplier' ? `Giảm ${formatVND(Math.abs(editExtraCostPerHead))}/con (trừ tiền xe)` : `+${formatVND(editExtraCostPerHead)}/con (tiền xe)` }}
+                    {{ editForm.shippingPayer === 'supplier' ? 'Giữ nguyên giá vốn mua' : `+${formatVND(editExtraCostPerHead)}/con (tiền xe)` }}
                   </strong>
                 </span>
               </div>
@@ -2182,16 +2182,18 @@ const totalTripCost = computed(() => {
 
 const extraCostPerHead = computed(() => {
   if (totalHeadCountInTrip.value <= 0) return 0;
-  const extraFees = (Number(importForm.value.shippingFee) || 0) + (Number(importForm.value.parkingFee) || 0);
-  const perHead = Math.round(extraFees / totalHeadCountInTrip.value);
   if (importForm.value.shippingPayer === 'supplier') {
-    return -perHead;
+    return 0; // NCC chịu (bao tiền xe) => Giữ nguyên giá vốn mua
   }
-  return perHead;
+  const extraFees = (Number(importForm.value.shippingFee) || 0) + (Number(importForm.value.parkingFee) || 0);
+  return Math.round(extraFees / totalHeadCountInTrip.value);
 });
 
 const unitCostAllocated = computed(() => {
   if (totalHeadCountInTrip.value <= 0) return 0;
+  if (importForm.value.shippingPayer === 'supplier') {
+    return Math.round(totalProductCost.value / totalHeadCountInTrip.value);
+  }
   return Math.round(totalTripCost.value / totalHeadCountInTrip.value);
 });
 
@@ -2453,17 +2455,19 @@ const editTotalTripCost = computed(() => {
 const editExtraCostPerHead = computed(() => {
   const count = editTotalHeadCountInTrip.value;
   if (count <= 0) return 0;
-  const extraFees = (Number(editForm.value.shippingFee) || 0) + (Number(editForm.value.parkingFee) || 0);
-  const perHead = Math.round(extraFees / count);
   if (editForm.value.shippingPayer === 'supplier') {
-    return -perHead;
+    return 0; // NCC chịu (bao tiền xe) => Giữ nguyên giá vốn mua
   }
-  return perHead;
+  const extraFees = (Number(editForm.value.shippingFee) || 0) + (Number(editForm.value.parkingFee) || 0);
+  return Math.round(extraFees / count);
 });
 
 const editUnitCostAllocated = computed(() => {
   const count = editTotalHeadCountInTrip.value;
   if (count <= 0) return 0;
+  if (editForm.value.shippingPayer === 'supplier') {
+    return Math.round(editTotalProductCost.value / count);
+  }
   return Math.round(editTotalTripCost.value / count);
 });
 

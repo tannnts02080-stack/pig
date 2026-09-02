@@ -155,9 +155,9 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
             BigDecimal perHead = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
             if (nccChiu) {
-                chiPhiPhuMoiCon = perHead.negate(); // Trừ tiền xe vào giá vốn mỗi con heo
+                chiPhiPhuMoiCon = BigDecimal.ZERO; // NCC chịu (bao tiền xe) => Giữ nguyên giá vốn mua mỗi con heo
             } else {
-                chiPhiPhuMoiCon = perHead; // Cộng tiền xe vào giá vốn mỗi con heo
+                chiPhiPhuMoiCon = perHead; // Mình chịu => Cộng tiền xe vào giá vốn mỗi con heo
             }
         }
 
@@ -315,7 +315,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             BigDecimal tongChiPhiPhu = chiPhiTienXe.add(chiPhiTienBai);
             BigDecimal perHead = tongChiPhiPhu.divide(BigDecimal.valueOf(tongSoConChuyenXe), 0, java.math.RoundingMode.HALF_UP);
             if (nccChiu) {
-                chiPhiPhuMoiCon = perHead.negate(); // Trừ tiền xe vào giá vốn mỗi con heo
+                chiPhiPhuMoiCon = BigDecimal.ZERO; // NCC chịu (bao tiền xe) => Giữ nguyên giá vốn mua mỗi con heo
             } else {
                 chiPhiPhuMoiCon = perHead; // Cộng tiền xe vào giá vốn mỗi con heo
             }
