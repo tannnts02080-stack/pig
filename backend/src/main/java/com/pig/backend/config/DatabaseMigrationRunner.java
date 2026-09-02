@@ -117,6 +117,13 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             log.warn("Migration product splitting note: {}", e.getMessage());
         }
 
+        try {
+            // Dọn sạch các sản phẩm mồ côi có số lượng con = 0 không còn trong bất kỳ phiếu nhập hay đơn hàng nào
+            jdbcTemplate.execute("DELETE FROM SAN_PHAM_HEO WHERE so_luong_con <= 0 AND (id NOT IN (SELECT DISTINCT san_pham_heo_id FROM CHI_TIET_DON_HANG WHERE san_pham_heo_id IS NOT NULL)) AND (id NOT IN (SELECT DISTINCT san_pham_heo_id FROM CHI_TIET_PHIEU_NHAP WHERE san_pham_heo_id IS NOT NULL));");
+        } catch (Exception e) {
+            log.warn("Cleanup 0-con products note: {}", e.getMessage());
+        }
+
         log.info("Database schema migration check completed successfully!");
     }
 

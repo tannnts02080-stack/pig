@@ -279,34 +279,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         PhieuNhapKho pn = phieuNhapKhoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập ID: " + id));
 
-        if (pn.getDanhSachChiTiet() != null) {
-            for (ChiTietPhieuNhap oldCt : pn.getDanhSachChiTiet()) {
-                SanPhamHeo sp = oldCt.getSanPhamHeo();
-                if (sp != null) {
-                    int oldCon = oldCt.getSoLuongCon() != null ? oldCt.getSoLuongCon() : 0;
-                    sp.setSoLuongCon(Math.max(0, sp.getSoLuongCon() - oldCon));
-                    BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
-                    BigDecimal oldKg = oldCt.getSoKg() != null ? oldCt.getSoKg() : BigDecimal.valueOf(oldCon).multiply(w);
-                    sp.setSoKgTonKho(sp.getSoKgTonKho().subtract(oldKg).max(BigDecimal.ZERO));
-                    sanPhamHeoRepository.save(sp);
-                }
-            }
-        }
-
-        BigDecimal oldPaid = pn.getSoTienDaTra() != null ? pn.getSoTienDaTra() : BigDecimal.ZERO;
-        if (oldPaid.compareTo(BigDecimal.ZERO) > 0) {
-            if (pn.getNhaCungCap() != null) {
-                NhaCungCap oldNcc = pn.getNhaCungCap();
-                BigDecimal cur = oldNcc.getCongNoPhaiTra() != null ? oldNcc.getCongNoPhaiTra() : BigDecimal.ZERO;
-                oldNcc.setCongNoPhaiTra(cur.add(oldPaid));
-                nhaCungCapRepository.save(oldNcc);
-            }
-            if (pn.getTaiKhoanNganHang() != null) {
-                TaiKhoanNganHang oldTk = pn.getTaiKhoanNganHang();
-                oldTk.setSoDuHienTai(oldTk.getSoDuHienTai().add(oldPaid));
-                taiKhoanNganHangRepository.save(oldTk);
-            }
-        }
+        List<ChiTietPhieuNhap> oldList = new ArrayList<>(pn.getDanhSachChiTiet());
 
         List<TaoPhieuNhapRequest.ChiTietMonNhapRequest> danhSachMon = request.getDanhSachChiTiet() != null ? request.getDanhSachChiTiet() : request.getItems();
         if (danhSachMon == null || danhSachMon.isEmpty()) {
@@ -352,7 +325,8 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
         pn.getDanhSachChiTiet().clear();
         List<ChiTietPhieuNhap> danhSachChiTietMoi = new ArrayList<>();
 
-        for (TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq : danhSachMon) {
+        for (int i = 0; i < danhSachMon.size(); i++) {
+            TaoPhieuNhapRequest.ChiTietMonNhapRequest itReq = danhSachMon.get(i);
             String targetSize = itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType();
             String donVi = itReq.getDonViTinh() != null ? itReq.getDonViTinh() : (itReq.getUnit() != null ? itReq.getUnit() : "Con");
             int soCon = itReq.getSoLuongCon() != null ? itReq.getSoLuongCon() : (itReq.getHeadCount() != null ? itReq.getHeadCount() : 0);
@@ -360,17 +334,47 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             BigDecimal giaVonGoc = itReq.getGiaNhapVon() != null ? itReq.getGiaNhapVon() : (itReq.getCostPrice() != null ? itReq.getCostPrice() : BigDecimal.ZERO);
             BigDecimal giaVonThucTe = giaVonGoc.add(chiPhiPhuMoiCon).max(BigDecimal.ZERO);
             LocalDate ngayNhap = request.getNgayNhapKho() != null ? request.getNgayNhapKho() : (request.getImportDate() != null ? request.getImportDate() : LocalDate.now());
-            
-            SanPhamHeo sp = taoMoiSanPhamHeo(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, soCon, soKg, ngayNhap, request.getGhiChu());
 
             boolean isKg = "Kg".equalsIgnoreCase(donVi) || (soKg.compareTo(BigDecimal.ZERO) > 0 && !"Con".equalsIgnoreCase(donVi));
             BigDecimal thanhTien = isKg ? giaVonGoc.multiply(soKg) : giaVonGoc.multiply(BigDecimal.valueOf(soCon > 0 ? soCon : 1));
             tienHangHeo = tienHangHeo.add(thanhTien);
 
-            ChiTietPhieuNhap ctpn = new ChiTietPhieuNhap();
+            SanPhamHeo sp;
+            ChiTietPhieuNhap ctpn;
+
+            if (i < oldList.size()) {
+                // TÁI SỬ DỤNG VÀ CẬP NHẬT TRỰC TIẾP VÀO SẢN PHẨM CŨ (KHÔNG TẠO Ô MỚI DƯ THỪA)
+                ctpn = oldList.get(i);
+                sp = ctpn.getSanPhamHeo();
+                if (sp == null) {
+                    sp = taoMoiSanPhamHeo(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, soCon, soKg, ngayNhap, request.getGhiChu());
+                } else {
+                    sp.setTenSanPham(targetSize != null ? targetSize : "Heo size");
+                    sp.setLoaiSize(targetSize != null ? targetSize : "Khác");
+                    sp.setLoaiHeo(loaiHeo);
+                    sp.setDacDiemHeo(dacDiemHeo);
+                    sp.setDonViTinh(donVi);
+                    sp.setNhaCungCap(ncc);
+                    sp.setTaiKhoanNganHang(tkNganHang);
+                    sp.setSoLuongCon(soCon > 0 ? soCon : 1);
+                    BigDecimal w = sp.getTrongLuongMoiCon() != null ? sp.getTrongLuongMoiCon() : new BigDecimal("5.0");
+                    BigDecimal newKg = isKg ? soKg : BigDecimal.valueOf(soCon > 0 ? soCon : 1).multiply(w);
+                    sp.setSoKgTonKho(newKg);
+                    sp.setGiaNhapVon(giaVonThucTe);
+                    sp.setNgayNhap(ngayNhap);
+                    sp.setGhiChu(request.getGhiChu());
+                    sp.setChiTietNhap(request.getGhiChu());
+                    sanPhamHeoRepository.save(sp);
+                }
+            } else {
+                // Chỉ tạo mới nếu người dùng bấm thêm dòng heo mới trong modal sửa
+                sp = taoMoiSanPhamHeo(targetSize, loaiHeo, dacDiemHeo, ncc, tkNganHang, donVi, giaVonThucTe, soCon, soKg, ngayNhap, request.getGhiChu());
+                ctpn = new ChiTietPhieuNhap();
+            }
+
             ctpn.setPhieuNhapKho(pn);
             ctpn.setSanPhamHeo(sp);
-            ctpn.setLoaiSize(itReq.getLoaiSize() != null ? itReq.getLoaiSize() : itReq.getSizeType());
+            ctpn.setLoaiSize(targetSize);
             ctpn.setDonViTinh(donVi);
             ctpn.setSoLuongCon(soCon > 0 ? soCon : 1);
             ctpn.setSoKg(soKg);
@@ -378,6 +382,18 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             ctpn.setThanhTienHang(thanhTien);
 
             danhSachChiTietMoi.add(ctpn);
+        }
+
+        // Nếu người dùng xóa bớt dòng trong modal sửa thì dọn sạch các sản phẩm dư thừa đó
+        if (oldList.size() > danhSachMon.size()) {
+            for (int i = danhSachMon.size(); i < oldList.size(); i++) {
+                ChiTietPhieuNhap extraCt = oldList.get(i);
+                if (extraCt.getSanPhamHeo() != null) {
+                    try {
+                        sanPhamHeoRepository.delete(extraCt.getSanPhamHeo());
+                    } catch (Exception ignored) {}
+                }
+            }
         }
 
         BigDecimal tongTienNhap = nccChiu 
