@@ -34,14 +34,8 @@ public class TaiKhoanNganHangServiceImpl implements TaiKhoanNganHangService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<TaiKhoanNganHang> layTatCaTaiKhoan() {
-        try {
-            // Tự động đồng bộ số dư tài khoản ngân hàng = Tổng dòng tiền thực tế (IN - OUT)
-            jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
-            // Tự động đồng bộ công nợ NCC = Tổng số dư trong các TK của NCC đó
-            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT SUM(so_du_hien_tai) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id), 0);");
-        } catch (Exception ignored) {}
         return taiKhoanNganHangRepository.findAll();
     }
 

@@ -41,12 +41,8 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<PhieuNhapKho> layTatCaPhieuNhap() {
-        try {
-            LocalDate twoYearsAgo = LocalDate.now().minusYears(2);
-            phieuNhapKhoRepository.deleteByNgayNhapKhoBefore(twoYearsAgo);
-        } catch (Exception ignored) {}
         return phieuNhapKhoRepository.findAllByOrderByNgayNhapKhoDesc();
     }
 
@@ -82,7 +78,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
 
             // 3. Tự động cân bằng lại số dư ngân hàng và công nợ NCC
             jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
-            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT SUM(so_du_hien_tai) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id), 0);");
+            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT ABS(SUM(so_du_hien_tai)) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id AND so_du_hien_tai < 0), 0);");
         } catch (Exception e) {
             System.err.println("Lỗi khi xóa phiếu nhập: " + e.getMessage());
         }
@@ -248,18 +244,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
 
         PhieuNhapKho saved = phieuNhapKhoRepository.save(pn);
 
-        if (ncc != null) {
-            BigDecimal curBal = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
-            if (soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
-                ncc.setCongNoPhaiTra(curBal.subtract(soTienDaTra));
-                nhaCungCapRepository.save(ncc);
-            }
-        }
-
         if (tkNganHang != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
-            tkNganHang.setSoDuHienTai(tkNganHang.getSoDuHienTai().subtract(soTienDaTra));
-            taiKhoanNganHangRepository.save(tkNganHang);
-
             DongTienNganHang dt = new DongTienNganHang();
             dt.setTaiKhoanNganHang(tkNganHang);
             dt.setLoaiDongTien("OUT");
@@ -277,6 +262,12 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             dt.setMoTa(desc);
             dt.setNgayGiaoDich(LocalDateTime.now());
             dongTienNganHangRepository.save(dt);
+
+            // Tự động đồng bộ số dư ngân hàng và công nợ NCC
+            try {
+                jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
+                jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT ABS(SUM(so_du_hien_tai)) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id AND so_du_hien_tai < 0), 0);");
+            } catch (Exception ignored) {}
         }
 
         return saved;

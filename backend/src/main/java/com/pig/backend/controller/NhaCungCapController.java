@@ -28,6 +28,13 @@ public class NhaCungCapController {
         return ResponseEntity.ok(nhaCungCapRepository.findAll());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<NhaCungCap> layTheoId(@PathVariable Long id) {
+        return nhaCungCapRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<NhaCungCap>> themMoi(@RequestBody NhaCungCap ncc) {
         if (ncc.getMaNhaCungCap() == null || ncc.getMaNhaCungCap().isBlank()) {

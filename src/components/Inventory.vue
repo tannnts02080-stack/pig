@@ -1921,48 +1921,61 @@ const fetchData = async (isSilent = false) => {
     if (!isSilent && products.value.length === 0 && suppliers.value.length === 0) {
       loading.value = true;
     }
-    const [prodRes, sizeRes, supRes, bankRes, purRes, dailyRes] = await Promise.all([
+    const promises = [
       fetch('/api/products').catch(() => null),
-      fetch('/api/sizes').catch(() => null),
       fetch('/api/suppliers').catch(() => null),
       fetch('/api/bank-accounts').catch(() => null),
-      fetch('/api/purchases').catch(() => null),
-      fetch(`/api/reports/daily-import?date=${dailyDate.value}`).catch(() => null)
-    ]);
+      fetch('/api/purchases').catch(() => null)
+    ];
+    const needSizes = sizes.value.length === 0;
+    if (needSizes) {
+      promises.push(fetch('/api/sizes').catch(() => null));
+    }
+    if (subTab.value === 'purchases') {
+      promises.push(fetch(`/api/reports/daily-import?date=${dailyDate.value}`).catch(() => null));
+    }
+
+    const responses = await Promise.all(promises);
+    const prodRes = responses[0];
+    const supRes = responses[1];
+    const bankRes = responses[2];
+    const purRes = responses[3];
 
     const prods = prodRes && prodRes.ok ? await prodRes.json() : [];
     const sups = supRes && supRes.ok ? await supRes.json() : [];
     const banks = bankRes && bankRes.ok ? await bankRes.json() : [];
     const purs = purRes && purRes.ok ? await purRes.json() : [];
-    const daily = dailyRes && dailyRes.ok ? await dailyRes.json() : {};
 
     products.value = Array.isArray(prods) ? prods : (prods?.data && Array.isArray(prods.data) ? prods.data : []);
-    
-    let sizesArr = [];
-    if (sizeRes && sizeRes.ok) {
-      const sJson = await sizeRes.json();
-      const apiList = Array.isArray(sJson) ? sJson : (sJson?.data && Array.isArray(sJson.data) ? sJson.data : []);
-      if (apiList.length > 0) {
-        sizesArr = apiList;
-      }
-    }
-    if (sizesArr.length === 0) {
-      const storedSizes = localStorage.getItem('pig_size_configs');
-      if (storedSizes) {
-        try {
-          const parsed = JSON.parse(storedSizes);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            sizesArr = parsed;
-          }
-        } catch (e) {}
-      }
-    }
-    sizes.value = sizesArr;
-
     suppliers.value = Array.isArray(sups) ? sups : (sups?.data && Array.isArray(sups.data) ? sups.data : []);
     bankAccounts.value = Array.isArray(banks) ? banks : (banks?.data && Array.isArray(banks.data) ? banks.data : []);
     allPurchases.value = Array.isArray(purs) ? purs : (purs?.data && Array.isArray(purs.data) ? purs.data : []);
-    dailySummary.value = daily || {};
+
+    let nextIdx = 4;
+    if (needSizes) {
+      const sizeRes = responses[nextIdx++];
+      let sizesArr = [];
+      if (sizeRes && sizeRes.ok) {
+        const sJson = await sizeRes.json();
+        const apiList = Array.isArray(sJson) ? sJson : (sJson?.data && Array.isArray(sJson.data) ? sJson.data : []);
+        if (apiList.length > 0) sizesArr = apiList;
+      }
+      if (sizesArr.length === 0) {
+        const storedSizes = localStorage.getItem('pig_size_configs');
+        if (storedSizes) {
+          try {
+            const parsed = JSON.parse(storedSizes);
+            if (Array.isArray(parsed) && parsed.length > 0) sizesArr = parsed;
+          } catch (e) {}
+        }
+      }
+      sizes.value = sizesArr;
+    }
+
+    if (subTab.value === 'purchases') {
+      const dailyRes = responses[nextIdx++];
+      dailySummary.value = dailyRes && dailyRes.ok ? await dailyRes.json() : {};
+    }
   } catch (e) {
     console.error("Lỗi tải dữ liệu kho:", e);
   } finally {
