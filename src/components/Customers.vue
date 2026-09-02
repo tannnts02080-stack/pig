@@ -971,13 +971,24 @@ const periodDescriptionText = computed(() => {
 // HÀM KIỂM TRA NGÀY CÓ THUỘC KỲ CHỌN HAY KHÔNG
 const isDateInPeriod = (dateStr) => {
   if (!dateStr) return false;
-  const d = new Date(dateStr);
+  // Parse chuẩn múi giờ địa phương: nếu là YYYY-MM-DD thì thêm T00:00:00 để tránh lệch UTC+7
+  let d;
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    // Dạng ngày thuần (không có giờ): parse theo local time để không bị lệch múi giờ
+    const parts = dateStr.split('-');
+    d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  } else {
+    d = new Date(dateStr);
+  }
   if (isNaN(d.getTime())) return false;
 
   if (periodMode.value === 'day') {
     const target = selectedDateStr.value;
-    const dateOnlyStr = d.toISOString().slice(0, 10);
-    return dateOnlyStr === target;
+    // So sánh theo local date string YYYY-MM-DD
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}` === target;
   }
 
   if (periodMode.value === 'month') {
