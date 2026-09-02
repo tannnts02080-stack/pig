@@ -51,59 +51,70 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
         safeAddColumn("TAI_KHOAN_NGAN_HANG", "ghi_chu", "NVARCHAR(MAX)");
         safeAddColumn("TAI_KHOAN_NGAN_HANG", "ten_nguoi_nha", "NVARCHAR(150)");
 
+        // 1. Xóa sạch các dòng tiền của các phiếu nhập đã bị xóa khỏi kho
         try {
-            // Xóa sạch các dòng tiền của các phiếu nhập đã bị xóa khỏi kho
-            jdbcTemplate.execute("DELETE FROM DONG_TIEN_NGAN_HANG WHERE loai_nghiepVu IN ('NHAP_CHUYEN_XE_HEO', 'NHAP_HANG_NCC', 'CHINH_SUA_NHAP') AND ma_tham_chieu NOT IN (SELECT ma_phieu_nhap FROM PHIEU_NHAP_KHO WHERE ma_phieu_nhap IS NOT NULL);");
+            jdbcTemplate.execute("DELETE FROM DONG_TIEN_NGAN_HANG WHERE loai_nghiep_vu IN ('NHAP_CHUYEN_XE_HEO', 'NHAP_HANG_NCC', 'CHINH_SUA_NHAP') AND ma_tham_chieu NOT IN (SELECT ma_phieu_nhap FROM PHIEU_NHAP_KHO WHERE ma_phieu_nhap IS NOT NULL);");
+        } catch (Exception e) {
+            log.warn("Migration clear orphaned transactions note: {}", e.getMessage());
+        }
 
-            // Chuẩn hóa lại các phiếu nhập cũ theo logic NCC bao tiền xe
+        // 2. Chuẩn hóa lại các phiếu nhập cũ theo logic NCC bao tiền xe
+        try {
             jdbcTemplate.execute("UPDATE PHIEU_NHAP_KHO SET tong_tien_nhap = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END, so_tien_da_tra = CASE WHEN LOWER(nguoi_chiu_tien_xe) = 'supplier' THEN (tien_hang_heo - ISNULL(chi_phi_tien_xe, 0) - ISNULL(chi_phi_tien_bai, 0)) ELSE (tien_hang_heo + ISNULL(chi_phi_tien_xe, 0) + ISNULL(chi_phi_tien_bai, 0)) END WHERE nguoi_chiu_tien_xe IS NOT NULL;");
-            
-            // Cập nhật lại số tiền trong bảng dòng tiền
             jdbcTemplate.execute("UPDATE DONG_TIEN_NGAN_HANG SET so_tien = p.so_tien_da_tra FROM DONG_TIEN_NGAN_HANG dt INNER JOIN PHIEU_NHAP_KHO p ON dt.ma_tham_chieu = p.ma_phieu_nhap;");
-            
-            // Cân đối lại số dư tài khoản ngân hàng NCC đúng theo thực tế
             jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
-            
-            // Cân đối lại công nợ NCC
             jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT SUM(so_du_hien_tai) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id), 0);");
+        } catch (Exception e) {
+            log.warn("Migration balance recalculation note: {}", e.getMessage());
+        }
 
-            // Tách các sản phẩm heo đang bị gộp theo từng chi tiết phiếu nhập thực tế
-            try {
-                java.util.List<java.util.Map<String, Object>> ctpnList = jdbcTemplate.queryForList("SELECT c.id AS ctpn_id, c.so_luong_con, c.so_kg, c.gia_nhap_von, c.loai_size, c.san_pham_heo_id, p.loai_heo, p.dac_diem_heo, p.nha_cung_cap_id, p.tai_khoan_ngan_hang_id, p.ngay_nhap_kho, p.ghi_chu FROM CHI_TIET_PHIEU_NHAP c INNER JOIN PHIEU_NHAP_KHO p ON c.phieu_nhap_kho_id = p.id;");
-                if (ctpnList != null && ctpnList.size() > 1) {
-                    for (int i = 0; i < ctpnList.size(); i++) {
-                        java.util.Map<String, Object> r = ctpnList.get(i);
-                        Long ctpnId = Long.valueOf(r.get("ctpn_id").toString());
-                        int soCon = r.get("so_luong_con") != null ? Integer.parseInt(r.get("so_luong_con").toString()) : 1;
-                        java.math.BigDecimal giaVon = r.get("gia_nhap_von") != null ? new java.math.BigDecimal(r.get("gia_nhap_von").toString()) : java.math.BigDecimal.ZERO;
-                        String size = (String) r.get("loai_size");
-                        String loaiHeo = (String) r.get("loai_heo");
-                        String dacDiem = (String) r.get("dac_diem_heo");
-                        Long nccId = r.get("nha_cung_cap_id") != null ? Long.valueOf(r.get("nha_cung_cap_id").toString()) : null;
-                        Long tkId = r.get("tai_khoan_ngan_hang_id") != null ? Long.valueOf(r.get("tai_khoan_ngan_hang_id").toString()) : null;
+        // 3. Tách các sản phẩm heo đang bị gộp theo từng chi tiết phiếu nhập thực tế
+        try {
+            java.util.List<java.util.Map<String, Object>> ctpnList = jdbcTemplate.queryForList("SELECT c.id AS ctpn_id, c.so_luong_con, c.so_kg, c.gia_nhap_von, c.loai_size, c.san_pham_heo_id, p.loai_heo, p.dac_diem_heo, p.nha_cung_cap_id, p.tai_khoan_ngan_hang_id, p.ngay_nhap_kho, p.ghi_chu FROM CHI_TIET_PHIEU_NHAP c INNER JOIN PHIEU_NHAP_KHO p ON c.phieu_nhap_kho_id = p.id ORDER BY c.id ASC;");
+            if (ctpnList != null && ctpnList.size() > 1) {
+                // Kiểm tra xem có sản phẩm nào bị liên kết với nhiều hơn 1 chi tiết phiếu nhập không
+                java.util.Map<Long, java.util.List<java.util.Map<String, Object>>> groupedBySp = new java.util.HashMap<>();
+                for (java.util.Map<String, Object> r : ctpnList) {
+                    Object spIdObj = r.get("san_pham_heo_id");
+                    if (spIdObj != null) {
+                        Long spId = Long.valueOf(spIdObj.toString());
+                        groupedBySp.computeIfAbsent(spId, k -> new java.util.ArrayList<>()).add(r);
+                    }
+                }
 
-                        if (i == 0) {
-                            Object spId = r.get("san_pham_heo_id");
-                            if (spId != null) {
-                                jdbcTemplate.update("UPDATE SAN_PHAM_HEO SET so_luong_con = ?, gia_nhap_von = ?, so_kg_ton_kho = ? WHERE id = ?", soCon, giaVon, soCon * 5.0, spId);
+                for (java.util.Map.Entry<Long, java.util.List<java.util.Map<String, Object>>> entry : groupedBySp.entrySet()) {
+                    Long originalSpId = entry.getKey();
+                    java.util.List<java.util.Map<String, Object>> list = entry.getValue();
+                    if (list.size() > 1) {
+                        for (int i = 0; i < list.size(); i++) {
+                            java.util.Map<String, Object> r = list.get(i);
+                            Long ctpnId = Long.valueOf(r.get("ctpn_id").toString());
+                            int soCon = r.get("so_luong_con") != null ? Integer.parseInt(r.get("so_luong_con").toString()) : 1;
+                            java.math.BigDecimal giaVon = r.get("gia_nhap_von") != null ? new java.math.BigDecimal(r.get("gia_nhap_von").toString()) : java.math.BigDecimal.ZERO;
+                            String size = (String) r.get("loai_size");
+                            String loaiHeo = (String) r.get("loai_heo");
+                            String dacDiem = (String) r.get("dac_diem_heo");
+                            Long nccId = r.get("nha_cung_cap_id") != null ? Long.valueOf(r.get("nha_cung_cap_id").toString()) : null;
+                            Long tkId = r.get("tai_khoan_ngan_hang_id") != null ? Long.valueOf(r.get("tai_khoan_ngan_hang_id").toString()) : null;
+
+                            if (i == 0) {
+                                jdbcTemplate.update("UPDATE SAN_PHAM_HEO SET so_luong_con = ?, gia_nhap_von = ?, so_kg_ton_kho = ? WHERE id = ?", soCon, giaVon, soCon * 5.0, originalSpId);
+                            } else {
+                                String maSP = "SP-" + System.currentTimeMillis() + "-" + i;
+                                jdbcTemplate.update("INSERT INTO SAN_PHAM_HEO (ma_san_pham, ten_san_pham, loai_size, loai_heo, dac_diem_heo, don_vi_tinh, nha_cung_cap_id, tai_khoan_ngan_hang_id, so_luong_con, so_kg_ton_kho, gia_nhap_von, gia_ban_ra, ngay_nhap) VALUES (?, ?, ?, ?, ?, 'Con', ?, ?, ?, ?, ?, 0, GETDATE())",
+                                    maSP, size != null ? size : "Heo sữa (3 - 3.9kg)", size != null ? size : "Heo sữa (3 - 3.9kg)", loaiHeo != null ? loaiHeo : "hot", dacDiem != null ? dacDiem : "duoi_cut", nccId, tkId, soCon, soCon * 5.0, giaVon
+                                );
+                                try {
+                                    Long newSpId = jdbcTemplate.queryForObject("SELECT id FROM SAN_PHAM_HEO WHERE ma_san_pham = ?", Long.class, maSP);
+                                    jdbcTemplate.update("UPDATE CHI_TIET_PHIEU_NHAP SET san_pham_heo_id = ? WHERE id = ?", newSpId, ctpnId);
+                                } catch (Exception ignored) {}
                             }
-                        } else {
-                            String maSP = "SP-" + System.currentTimeMillis() + "-" + i;
-                            jdbcTemplate.update("INSERT INTO SAN_PHAM_HEO (ma_san_pham, ten_san_pham, loai_size, loai_heo, dac_diem_heo, don_vi_tinh, nha_cung_cap_id, tai_khoan_ngan_hang_id, so_luong_con, so_kg_ton_kho, gia_nhap_von, gia_ban_ra, ngay_nhap, trang_thai_hoat_dong) VALUES (?, ?, ?, ?, ?, 'Con', ?, ?, ?, ?, ?, 0, GETDATE(), 1)",
-                                maSP, size != null ? size : "Heo sữa (3 - 3.9kg)", size != null ? size : "Heo sữa (3 - 3.9kg)", loaiHeo != null ? loaiHeo : "hot", dacDiem != null ? dacDiem : "duoi_cut", nccId, tkId, soCon, soCon * 5.0, giaVon
-                            );
-                            try {
-                                Long newSpId = jdbcTemplate.queryForObject("SELECT id FROM SAN_PHAM_HEO WHERE ma_san_pham = ?", Long.class, maSP);
-                                jdbcTemplate.update("UPDATE CHI_TIET_PHIEU_NHAP SET san_pham_heo_id = ? WHERE id = ?", newSpId, ctpnId);
-                            } catch (Exception ignored) {}
                         }
                     }
                 }
-            } catch (Exception e) {
-                log.warn("Migration product splitting note: {}", e.getMessage());
             }
         } catch (Exception e) {
-            log.warn("Migration balance recalculation note: {}", e.getMessage());
+            log.warn("Migration product splitting note: {}", e.getMessage());
         }
 
         log.info("Database schema migration check completed successfully!");
