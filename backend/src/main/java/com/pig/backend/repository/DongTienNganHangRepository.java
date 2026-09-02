@@ -8,6 +8,7 @@ import java.util.List;
 @Repository
 public interface DongTienNganHangRepository extends JpaRepository<DongTienNganHang, Long> {
     List<DongTienNganHang> findByTaiKhoanNganHangIdOrderByNgayGiaoDichDesc(Long taiKhoanId);
+    List<DongTienNganHang> findByTaiKhoanNganHangId(Long taiKhoanId);
     List<DongTienNganHang> findAllByOrderByNgayGiaoDichDesc();
     List<DongTienNganHang> findByMaThamChieu(String maThamChieu);
     void deleteByNgayGiaoDichBefore(java.time.LocalDateTime cutoffDate);

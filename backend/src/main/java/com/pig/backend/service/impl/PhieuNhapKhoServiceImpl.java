@@ -261,13 +261,18 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             desc += ")";
             dt.setMoTa(desc);
             dt.setNgayGiaoDich(LocalDateTime.now());
-            dongTienNganHangRepository.save(dt);
+            dongTienNganHangRepository.saveAndFlush(dt);
 
-            // Tự động đồng bộ số dư ngân hàng và công nợ NCC
-            try {
-                jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
-                jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT ABS(SUM(so_du_hien_tai)) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id AND so_du_hien_tai < 0), 0);");
-            } catch (Exception ignored) {}
+            BigDecimal newBal = dongTienNganHangRepository.findByTaiKhoanNganHangId(tkNganHang.getId()).stream()
+                    .map(d -> "IN".equalsIgnoreCase(d.getLoaiDongTien()) ? d.getSoTien() : d.getSoTien().negate())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            tkNganHang.setSoDuHienTai(newBal);
+            taiKhoanNganHangRepository.saveAndFlush(tkNganHang);
+
+            if (ncc != null) {
+                ncc.setCongNoPhaiTra(newBal.compareTo(BigDecimal.ZERO) < 0 ? newBal.abs() : BigDecimal.ZERO);
+                nhaCungCapRepository.saveAndFlush(ncc);
+            }
         }
 
         return saved;
@@ -439,17 +444,7 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
 
         PhieuNhapKho phieuDaLuu = phieuNhapKhoRepository.save(pn);
 
-        // Trừ tiền NCC & Ngân Hàng mới
-        if (ncc != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal curBal = ncc.getCongNoPhaiTra() != null ? ncc.getCongNoPhaiTra() : BigDecimal.ZERO;
-            ncc.setCongNoPhaiTra(curBal.subtract(soTienDaTra));
-            nhaCungCapRepository.save(ncc);
-        }
-
         if (tkNganHang != null && soTienDaTra.compareTo(BigDecimal.ZERO) > 0) {
-            tkNganHang.setSoDuHienTai(tkNganHang.getSoDuHienTai().subtract(soTienDaTra));
-            taiKhoanNganHangRepository.save(tkNganHang);
-
             List<DongTienNganHang> existingDts = dongTienNganHangRepository.findByMaThamChieu(pn.getMaPhieuNhap());
             DongTienNganHang dt;
             if (existingDts != null && !existingDts.isEmpty()) {
@@ -476,7 +471,18 @@ public class PhieuNhapKhoServiceImpl implements PhieuNhapKhoService {
             dt.setNhaCungCapId(ncc != null ? ncc.getId() : null);
             dt.setLoaiNghiepVu("NHAP_CHUYEN_XE_HEO");
             dt.setLoaiGiaoDich("TRU_TIEN_HANG_NCC");
-            dongTienNganHangRepository.save(dt);
+            dongTienNganHangRepository.saveAndFlush(dt);
+
+            BigDecimal newBal = dongTienNganHangRepository.findByTaiKhoanNganHangId(tkNganHang.getId()).stream()
+                    .map(d -> "IN".equalsIgnoreCase(d.getLoaiDongTien()) ? d.getSoTien() : d.getSoTien().negate())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            tkNganHang.setSoDuHienTai(newBal);
+            taiKhoanNganHangRepository.saveAndFlush(tkNganHang);
+
+            if (ncc != null) {
+                ncc.setCongNoPhaiTra(newBal.compareTo(BigDecimal.ZERO) < 0 ? newBal.abs() : BigDecimal.ZERO);
+                nhaCungCapRepository.saveAndFlush(ncc);
+            }
         }
 
         return phieuDaLuu;

@@ -120,8 +120,11 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
         try {
             // Dọn sạch các sản phẩm mồ côi có số lượng con = 0 không còn trong bất kỳ phiếu nhập hay đơn hàng nào
             jdbcTemplate.execute("DELETE FROM SAN_PHAM_HEO WHERE so_luong_con <= 0 AND (id NOT IN (SELECT DISTINCT san_pham_heo_id FROM CHI_TIET_DON_HANG WHERE san_pham_heo_id IS NOT NULL)) AND (id NOT IN (SELECT DISTINCT san_pham_heo_id FROM CHI_TIET_PHIEU_NHAP WHERE san_pham_heo_id IS NOT NULL));");
+            // Tự động đồng bộ lại số dư ngân hàng và công nợ NCC chuẩn xác
+            jdbcTemplate.execute("UPDATE TAI_KHOAN_NGAN_HANG SET so_du_hien_tai = ISNULL((SELECT SUM(CASE WHEN loai_dong_tien = 'IN' THEN so_tien ELSE -so_tien END) FROM DONG_TIEN_NGAN_HANG WHERE tai_khoan_ngan_hang_id = TAI_KHOAN_NGAN_HANG.id), 0);");
+            jdbcTemplate.execute("UPDATE NHA_CUNG_CAP SET cong_no_phai_tra = ISNULL((SELECT ABS(SUM(so_du_hien_tai)) FROM TAI_KHOAN_NGAN_HANG WHERE nha_cung_cap_id = NHA_CUNG_CAP.id AND so_du_hien_tai < 0), 0);");
         } catch (Exception e) {
-            log.warn("Cleanup 0-con products note: {}", e.getMessage());
+            log.warn("Cleanup & sync note: {}", e.getMessage());
         }
 
         log.info("Database schema migration check completed successfully!");
